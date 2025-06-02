@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:invoice_d/home_screen.dart'; // Importa la pantalla principal
 
 void main() {
   runApp(const MyApp());
@@ -71,10 +72,10 @@ class HomePage extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Título "Invoice D"
-            // Este Padding y su hijo RichText son completamente constantes.
-            Padding( // Línea ~77 (Error const_with_non_const) - Ahora debería ser válido.
+            Padding(
               padding: const EdgeInsets.only(top: 20.0, left: 20.0),
               child: RichText(
+                // Aquí quitamos el `const` de TextSpan porque sus hijos `TextStyle` no pueden serlo.
                 text: TextSpan(
                   children: <TextSpan>[
                     TextSpan(
@@ -112,15 +113,15 @@ class HomePage extends StatelessWidget {
             ),
 
             // Contenedor para los textos de "Invoice Drive" y descripción
-            // Quitamos 'const' del Padding exterior para resolver el error de la línea 124.
-            // El Column interno y sus hijos sí pueden ser constantes, por eso le ponemos 'const'.
-            Padding( // Línea ~124 (Error const_with_non_const) - QUITADO 'const'
+            Padding(
               padding: const EdgeInsets.only(left: 20.0, right: 20.0, bottom: 20.0),
-              child: Column( // Añadimos 'const' aquí al Column, ya que sus hijos son constantes.
+              // Aquí quitamos el `const` de Column porque sus hijos `RichText` y `Text` no pueden serlo.
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Texto "Invoice Drive Gestiona Tu negocio"
                   RichText(
+                    // Aquí quitamos el `const` de TextSpan porque sus hijos `TextStyle` no pueden serlo.
                     text: TextSpan(
                       children: <TextSpan>[
                         TextSpan(
@@ -158,8 +159,8 @@ class HomePage extends StatelessWidget {
                       ],
                     ),
                   ),
-                  SizedBox(height: 10),
-                  Text(
+                  const SizedBox(height: 10), // Aquí sí es válido `const`
+                  const Text( // Aquí sí es válido `const`
                     'Lleva tu compañía y su organización al siguiente nivel o gestiona tus finanzas personales',
                     style: TextStyle(
                       color: Color(0xFFFFFFFF), // Blanco
@@ -173,13 +174,17 @@ class HomePage extends StatelessWidget {
 
             // Botón "Inicia AQUÍ"
             // El Padding y ElevatedButton NO pueden ser const debido a la función onPressed.
-            Padding( // Línea ~163 (Error unnecessary_const) - QUITADO 'const' aquí.
+            Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 20.0),
               child: ElevatedButton(
                 onPressed: () {
-                  // Acción del botón
+                  // Acción del botón para navegar a HomeScreen
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const HomeScreen()),
+                  );
                 },
-                child: const Text('Inicia Aqui'), // Línea ~165 (Error unnecessary_const) - Mantenemos 'const' aquí.
+                child: const Text('Inicia Aqui'),
               ),
             ),
           ],
