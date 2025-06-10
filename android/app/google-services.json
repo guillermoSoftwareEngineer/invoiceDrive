@@ -12,7 +12,20 @@
           "package_name": "com.g14.invoice_drive"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "550066288907-7m7c6hvf0h8vba3sc7i9ublci2men8jp.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.g14.invoice_drive",
+            "certificate_hash": "f4c51204d9cfa942e735adbb4f0f4971fad10260"
+          }
+        },
+        {
+          "client_id": "550066288907-h6kfmiit3e8r7mf6est2b1rrpj4tf27r.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyCutxb_BU8vNmtBVe__HOQJR6aUkmNl_7Y"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "550066288907-h6kfmiit3e8r7mf6est2b1rrpj4tf27r.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

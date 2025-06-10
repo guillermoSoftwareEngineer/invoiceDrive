@@ -71,20 +71,28 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _showChangeNameDialog() async {
-    TextEditingController nameController = TextEditingController(text: _userName);
+    TextEditingController nameController = TextEditingController(
+      text: _userName,
+    );
     return showDialog<void>(
       context: context,
       barrierDismissible: true,
       builder: (BuildContext context) {
         return AlertDialog(
           backgroundColor: const Color(0xFF1C1C1C),
-          title: const Text('Cambiar Nombre', style: TextStyle(color: Colors.white, fontFamily: 'Poppins')),
+          title: const Text(
+            'Cambiar Nombre',
+            style: TextStyle(color: Colors.white, fontFamily: 'Poppins'),
+          ),
           content: TextField(
             controller: nameController,
             style: const TextStyle(color: Colors.white, fontFamily: 'Poppins'),
             decoration: const InputDecoration(
               hintText: 'Introduce tu nombre',
-              hintStyle: TextStyle(color: Colors.white54, fontFamily: 'Poppins'),
+              hintStyle: TextStyle(
+                color: Colors.white54,
+                fontFamily: 'Poppins',
+              ),
               enabledBorder: OutlineInputBorder(
                 borderSide: BorderSide(color: Color(0xFF6552FE)),
               ),
@@ -95,13 +103,22 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           actions: <Widget>[
             TextButton(
-              child: const Text('Cancelar', style: TextStyle(color: Colors.white70, fontFamily: 'Poppins')),
+              child: const Text(
+                'Cancelar',
+                style: TextStyle(color: Colors.white70, fontFamily: 'Poppins'),
+              ),
               onPressed: () {
                 Navigator.of(context).pop();
               },
             ),
             TextButton(
-              child: const Text('Guardar', style: TextStyle(color: Color(0xFF6552FE), fontFamily: 'Poppins')),
+              child: const Text(
+                'Guardar',
+                style: TextStyle(
+                  color: Color(0xFF6552FE),
+                  fontFamily: 'Poppins',
+                ),
+              ),
               onPressed: () {
                 _saveUserName(nameController.text);
                 Navigator.of(context).pop();
@@ -114,7 +131,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _showBudgetDialog() async {
-    TextEditingController budgetController = TextEditingController(text: _currentBudget == 0.0 ? '' : _currentBudget.toStringAsFixed(2));
+    TextEditingController budgetController = TextEditingController(
+      text: _currentBudget == 0.0 ? '' : _currentBudget.toStringAsFixed(2),
+    );
     bool isFirstTimeEntry = _currentBudget == 0.0;
 
     return showDialog<void>(
@@ -124,7 +143,9 @@ class _HomeScreenState extends State<HomeScreen> {
         return AlertDialog(
           backgroundColor: const Color(0xFF1C1C1C),
           title: Text(
-            isFirstTimeEntry ? 'Establecer Presupuesto Inicial' : 'Modificar Presupuesto',
+            isFirstTimeEntry
+                ? 'Establecer Presupuesto Inicial'
+                : 'Modificar Presupuesto',
             style: const TextStyle(color: Colors.white, fontFamily: 'Poppins'),
           ),
           content: TextField(
@@ -133,7 +154,10 @@ class _HomeScreenState extends State<HomeScreen> {
             style: const TextStyle(color: Colors.white, fontFamily: 'Poppins'),
             decoration: const InputDecoration(
               hintText: 'Introduce el monto',
-              hintStyle: TextStyle(color: Colors.white54, fontFamily: 'Poppins'),
+              hintStyle: TextStyle(
+                color: Colors.white54,
+                fontFamily: 'Poppins',
+              ),
               enabledBorder: OutlineInputBorder(
                 borderSide: BorderSide(color: Color(0xFF6552FE)),
               ),
@@ -144,7 +168,10 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           actions: <Widget>[
             TextButton(
-              child: const Text('Cancelar', style: TextStyle(color: Colors.white70, fontFamily: 'Poppins')),
+              child: const Text(
+                'Cancelar',
+                style: TextStyle(color: Colors.white70, fontFamily: 'Poppins'),
+              ),
               onPressed: () {
                 Navigator.of(context).pop();
               },
@@ -162,7 +189,10 @@ class _HomeScreenState extends State<HomeScreen> {
             TextButton(
               child: Text(
                 isFirstTimeEntry ? 'Establecer' : 'Guardar',
-                style: const TextStyle(color: Color(0xFF6552FE), fontFamily: 'Poppins'),
+                style: const TextStyle(
+                  color: Color(0xFF6552FE),
+                  fontFamily: 'Poppins',
+                ),
               ),
               onPressed: () {
                 double? newBudget = double.tryParse(budgetController.text);
@@ -191,20 +221,29 @@ class _HomeScreenState extends State<HomeScreen> {
       builder: (BuildContext context) {
         return AlertDialog(
           backgroundColor: const Color(0xFF1C1C1C),
-          title: const Text('Reiniciar Presupuesto', style: TextStyle(color: Colors.white, fontFamily: 'Poppins')),
+          title: const Text(
+            'Reiniciar Presupuesto',
+            style: TextStyle(color: Colors.white, fontFamily: 'Poppins'),
+          ),
           content: const Text(
             '¿Estás seguro de que quieres reiniciar tu presupuesto a \$0.00? Esta acción no se puede deshacer.',
             style: TextStyle(color: Colors.white70, fontFamily: 'Poppins'),
           ),
           actions: <Widget>[
             TextButton(
-              child: const Text('Cancelar', style: TextStyle(color: Colors.white70, fontFamily: 'Poppins')),
+              child: const Text(
+                'Cancelar',
+                style: TextStyle(color: Colors.white70, fontFamily: 'Poppins'),
+              ),
               onPressed: () {
                 Navigator.of(context).pop();
               },
             ),
             TextButton(
-              child: const Text('Confirmar', style: TextStyle(color: Colors.red, fontFamily: 'Poppins')),
+              child: const Text(
+                'Confirmar',
+                style: TextStyle(color: Colors.red, fontFamily: 'Poppins'),
+              ),
               onPressed: () {
                 _saveCurrentBudget(0.0);
                 Navigator.of(context).pop();
@@ -241,12 +280,17 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: CircleAvatar(
                     radius: 20,
                     backgroundColor: Colors.grey,
-                    backgroundImage: _userProfilePicPath != null && _userProfilePicPath!.isNotEmpty
-                        ? FileImage(File(_userProfilePicPath!)) as ImageProvider<Object>?
-                        : null,
-                    child: _userProfilePicPath == null || _userProfilePicPath!.isEmpty
-                        ? const Icon(Icons.person, color: Colors.white)
-                        : null,
+                    backgroundImage:
+                        _userProfilePicPath != null &&
+                                _userProfilePicPath!.isNotEmpty
+                            ? FileImage(File(_userProfilePicPath!))
+                                as ImageProvider<Object>?
+                            : null,
+                    child:
+                        _userProfilePicPath == null ||
+                                _userProfilePicPath!.isEmpty
+                            ? const Icon(Icons.person, color: Colors.white)
+                            : null,
                   ),
                 ),
                 const SizedBox(height: 5),
@@ -338,7 +382,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const Row(
                         children: [
-                          Icon(Icons.arrow_upward, color: Color.fromARGB(255, 30, 30, 30), size: 16),
+                          Icon(
+                            Icons.arrow_upward,
+                            color: Color.fromARGB(255, 30, 30, 30),
+                            size: 16,
+                          ),
                           Text(
                             'Última Factura',
                             style: TextStyle(
@@ -366,13 +414,18 @@ class _HomeScreenState extends State<HomeScreen> {
                       onPressed: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => const InvoiceEntryScreen()),
+                          MaterialPageRoute(
+                            builder: (context) => const InvoiceEntryScreen(),
+                          ),
                         );
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF6552FE),
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 8,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
@@ -398,14 +451,19 @@ class _HomeScreenState extends State<HomeScreen> {
                       onPressed: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => const VisualRegisterScreen()),
+                          MaterialPageRoute(
+                            builder: (context) => const VisualRegisterScreen(),
+                          ),
                         );
                       },
                       style: OutlinedButton.styleFrom(
                         backgroundColor: Colors.transparent,
                         foregroundColor: Colors.white,
                         side: const BorderSide(color: Colors.white, width: 1),
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 8,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
@@ -427,7 +485,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ),
-             const SizedBox(height: 30),
+            const SizedBox(height: 30),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -479,7 +537,7 @@ class _HomeScreenState extends State<HomeScreen> {
               '\$69270',
               'Activo',
             ),
-             _buildInvoiceListItem(
+            _buildInvoiceListItem(
               context,
               'Patrocinios',
               'Ingreso',
@@ -499,25 +557,25 @@ class _HomeScreenState extends State<HomeScreen> {
           // print('Tapped on index: $index');
         },
         items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.grid_view),
-            label: 'Home',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.grid_view), label: 'Home'),
           BottomNavigationBarItem(
             icon: Icon(Icons.refresh),
             label: 'Actividad',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Perfil',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Perfil'),
         ],
       ),
     );
   }
 
   // ¡MODIFICADO! Widget helper para construir los ítems de factura
-  Widget _buildInvoiceListItem(BuildContext context, String title, String subtitle, String amount, String status) {
+  Widget _buildInvoiceListItem(
+    BuildContext context,
+    String title,
+    String subtitle,
+    String amount,
+    String status,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
@@ -530,12 +588,15 @@ class _HomeScreenState extends State<HomeScreen> {
               borderRadius: BorderRadius.circular(8),
             ),
             // ¡MODIFICADO! Usar Image.asset para el icono
-            child: Center( // Centra la imagen dentro del Container
+            child: Center(
+              // Centra la imagen dentro del Container
               child: Image.asset(
                 'assets/images/icon.png', // Ruta a tu imagen
                 width: 25, // Tamaño de la imagen (25px)
                 height: 26, // Tamaño de la imagen (26px)
-                fit: BoxFit.contain, // Asegura que la imagen se ajuste dentro del espacio
+                fit:
+                    BoxFit
+                        .contain, // Asegura que la imagen se ajuste dentro del espacio
               ),
             ),
           ),
@@ -571,9 +632,7 @@ class _HomeScreenState extends State<HomeScreen> {
               border: Border.all(color: Colors.white12),
               borderRadius: BorderRadius.circular(5),
             ),
-            child: CustomPaint(
-              painter: _LineChartPainter(),
-            ),
+            child: CustomPaint(painter: _LineChartPainter()),
           ),
           const SizedBox(width: 15),
           Column(
@@ -607,10 +666,11 @@ class _HomeScreenState extends State<HomeScreen> {
 class _LineChartPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final Paint paint = Paint()
-      ..color = Colors.greenAccent
-      ..strokeWidth = 2.0
-      ..style = PaintingStyle.stroke;
+    final Paint paint =
+        Paint()
+          ..color = Colors.greenAccent
+          ..strokeWidth = 2.0
+          ..style = PaintingStyle.stroke;
 
     final Path path = Path();
     path.moveTo(0, size.height * 0.7);

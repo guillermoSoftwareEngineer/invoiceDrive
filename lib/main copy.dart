@@ -1,14 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:invoice_d/home_screen.dart'; // Importa la pantalla principal
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-
-import 'services/auth_service.dart';
-import 'registro_manual_screen.dart';
-import 'services/auth_service.dart';
-
-import 'home_screen.dart';
-import 'login_email_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,9 +18,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         brightness: Brightness.dark,
         primaryColor: const Color(0xFF6552FE), // Morado principal
-        scaffoldBackgroundColor: const Color(
-          0xFF070707,
-        ), // Fondo muy oscuro, casi negro
+        scaffoldBackgroundColor: const Color(0xFF070707), // Fondo muy oscuro, casi negro
         appBarTheme: const AppBarTheme(
           backgroundColor: Color(0xFF070707),
           foregroundColor: Color(0xFFFFFFFF), // Blanco para el texto del AppBar
@@ -36,12 +26,8 @@ class MyApp extends StatelessWidget {
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(
-              0xFF6552FE,
-            ), // Color del botón "Inicia AQUÍ"
-            foregroundColor: const Color(
-              0xFFFFFFFF,
-            ), // Color del texto del botón
+            backgroundColor: const Color(0xFF6552FE), // Color del botón "Inicia AQUÍ"
+            foregroundColor: const Color(0xFFFFFFFF), // Color del texto del botón
             padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10), // Bordes más redondeados
@@ -56,72 +42,30 @@ class MyApp extends StatelessWidget {
         textTheme: const TextTheme(
           // Define la familia de fuente por defecto para todos los textos
           bodyLarge: TextStyle(fontFamily: 'Poppins', color: Color(0xFFFFFFFF)),
-          bodyMedium: TextStyle(
-            fontFamily: 'Poppins',
-            color: Color(0xFFFFFFFF),
-          ),
+          bodyMedium: TextStyle(fontFamily: 'Poppins', color: Color(0xFFFFFFFF)),
           bodySmall: TextStyle(fontFamily: 'Poppins', color: Color(0xFFFFFFFF)),
-          displayLarge: TextStyle(
-            fontFamily: 'Poppins',
-            color: Color(0xFFFFFFFF),
-          ),
-          displayMedium: TextStyle(
-            fontFamily: 'Poppins',
-            color: Color(0xFFFFFFFF),
-          ),
-          displaySmall: TextStyle(
-            fontFamily: 'Poppins',
-            color: Color(0xFFFFFFFF),
-          ),
-          headlineLarge: TextStyle(
-            fontFamily: 'Poppins',
-            color: Color(0xFFFFFFFF),
-          ),
-          headlineMedium: TextStyle(
-            fontFamily: 'Poppins',
-            color: Color(0xFFFFFFFF),
-          ),
-          headlineSmall: TextStyle(
-            fontFamily: 'Poppins',
-            color: Color(0xFFFFFFFF),
-          ),
-          labelLarge: TextStyle(
-            fontFamily: 'Poppins',
-            color: Color(0xFFFFFFFF),
-          ),
-          labelMedium: TextStyle(
-            fontFamily: 'Poppins',
-            color: Color(0xFFFFFFFF),
-          ),
-          labelSmall: TextStyle(
-            fontFamily: 'Poppins',
-            color: Color(0xFFFFFFFF),
-          ),
-          titleLarge: TextStyle(
-            fontFamily: 'Poppins',
-            color: Color(0xFFFFFFFF),
-          ),
-          titleMedium: TextStyle(
-            fontFamily: 'Poppins',
-            color: Color(0xFFFFFFFF),
-          ),
-          titleSmall: TextStyle(
-            fontFamily: 'Poppins',
-            color: Color(0xFFFFFFFF),
-          ),
+          displayLarge: TextStyle(fontFamily: 'Poppins', color: Color(0xFFFFFFFF)),
+          displayMedium: TextStyle(fontFamily: 'Poppins', color: Color(0xFFFFFFFF)),
+          displaySmall: TextStyle(fontFamily: 'Poppins', color: Color(0xFFFFFFFF)),
+          headlineLarge: TextStyle(fontFamily: 'Poppins', color: Color(0xFFFFFFFF)),
+          headlineMedium: TextStyle(fontFamily: 'Poppins', color: Color(0xFFFFFFFF)),
+          headlineSmall: TextStyle(fontFamily: 'Poppins', color: Color(0xFFFFFFFF)),
+          labelLarge: TextStyle(fontFamily: 'Poppins', color: Color(0xFFFFFFFF)),
+          labelMedium: TextStyle(fontFamily: 'Poppins', color: Color(0xFFFFFFFF)),
+          labelSmall: TextStyle(fontFamily: 'Poppins', color: Color(0xFFFFFFFF)),
+          titleLarge: TextStyle(fontFamily: 'Poppins', color: Color(0xFFFFFFFF)),
+          titleMedium: TextStyle(fontFamily: 'Poppins', color: Color(0xFFFFFFFF)),
+          titleSmall: TextStyle(fontFamily: 'Poppins', color: Color(0xFFFFFFFF)),
         ),
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      home:
-          FirebaseAuth.instance.currentUser != null
-              ? const HomeScreen()
-              : const WelcomeScreen(),
+      home: const HomePage(),
     );
   }
 }
 
-class WelcomeScreen  extends StatelessWidget {
-  const WelcomeScreen({super.key});
+class HomePage extends StatelessWidget {
+  const HomePage({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -173,11 +117,7 @@ class WelcomeScreen  extends StatelessWidget {
 
             // Contenedor para los textos de "Invoice Drive" y descripción
             Padding(
-              padding: const EdgeInsets.only(
-                left: 20.0,
-                right: 20.0,
-                bottom: 20.0,
-              ),
+              padding: const EdgeInsets.only(left: 20.0, right: 20.0, bottom: 20.0),
               // Aquí quitamos el `const` de Column porque sus hijos `RichText` y `Text` no pueden serlo.
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -223,8 +163,7 @@ class WelcomeScreen  extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 10), // Aquí sí es válido `const`
-                  const Text(
-                    // Aquí sí es válido `const`
+                  const Text( // Aquí sí es válido `const`
                     'Lleva tu compañía y su organización al siguiente nivel o gestiona tus finanzas personales',
                     style: TextStyle(
                       color: Color(0xFFFFFFFF), // Blanco
@@ -239,86 +178,16 @@ class WelcomeScreen  extends StatelessWidget {
             // Botón "Inicia AQUÍ"
             // El Padding y ElevatedButton NO pueden ser const debido a la función onPressed.
             Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 20.0,
-                vertical: 10.0,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // 🔹 Inicio de sesión
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const LoginEmailScreen(),
-                        ),
-                      );
-                    },
-                    child: const Text('Iniciar sesión'),
-                  ),
-                  const SizedBox(height: 10),
-                  // OutlinedButton(
-                  //   onPressed: () async {
-                  //     final user = await AuthService().signInWithGoogle();
-                  //     if (user != null) {
-                  //       Navigator.pushReplacement(
-                  //         context,
-                  //         MaterialPageRoute(builder: (_) => const HomeScreen()),
-                  //       );
-                  //     } else {
-                  //       ScaffoldMessenger.of(context).showSnackBar(
-                  //         const SnackBar(
-                  //           content: Text(
-                  //             'No se pudo completar el inicio con Google',
-                  //           ),
-                  //         ),
-                  //       );
-                  //     }
-                  //   },
-                  //   child: const Text('Iniciar sesión con Google'),
-                  // ),
-
-                  const SizedBox(height: 30),
-
-                  // 🔸 Registro
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const RegistroManualScreen(),
-                        ),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.grey[800],
-                    ),
-                    child: const Text('Registrarse'),
-                  ),
-                  const SizedBox(height: 10),
-                  // OutlinedButton(
-                  //   onPressed: () async {
-                  //     final user = await AuthService().signInWithGoogle();
-                  //     if (user != null) {
-                  //       Navigator.pushReplacement(
-                  //         context,
-                  //         MaterialPageRoute(builder: (_) => const HomeScreen()),
-                  //       );
-                  //     } else {
-                  //       ScaffoldMessenger.of(context).showSnackBar(
-                  //         const SnackBar(
-                  //           content: Text(
-                  //             'No se pudo completar el inicio con Google',
-                  //           ),
-                  //         ),
-                  //       );
-                  //     }
-                  //   },
-                  //   child: const Text('Registrarse con Google'),
-                  // ),
-                ],
+              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 20.0),
+              child: ElevatedButton(
+                onPressed: () {
+                  // Acción del botón para navegar a HomeScreen
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const HomeScreen()),
+                  );
+                },
+                child: const Text('Inicia Aqui'),
               ),
             ),
           ],

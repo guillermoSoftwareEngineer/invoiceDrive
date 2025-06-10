@@ -1,6 +1,13 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'factura_form_screen.dart';
+import 'package:mobile_scanner/mobile_scanner.dart' as ms;
+import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart'
+    as mlkit;
+
 
 class InvoiceEntryScreen extends StatefulWidget {
   const InvoiceEntryScreen({super.key});
@@ -12,22 +19,54 @@ class InvoiceEntryScreen extends StatefulWidget {
 class _InvoiceEntryScreenState extends State<InvoiceEntryScreen> {
   String _scannedData = '';
   bool _isScanned = false;
+  bool _huboError = false;
+  File? _imagenSeleccionada;
 
-  void _onDetect(BarcodeCapture capture) {
+  final MobileScannerController _scannerController = MobileScannerController();
+
+
+Future<void> _seleccionarImagen() async {
+    final pickedFile = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+    );
+
+    if (pickedFile != null) {
+      setState(() {
+        _imagenSeleccionada = File(pickedFile.path);
+      });
+    }
+  }
+
+  void _navegarAlFormulario() {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder:
+            (context) => FacturaFormScreen(
+              datos: {}, // o datos escaneados si existen
+              contenidoOriginal: '', // texto QR si aplica
+              imagenFactura: _imagenSeleccionada,
+            ),
+      ),
+    );
+  }
+
+void _onDetect(ms.BarcodeCapture capture) {
+  
     if (_isScanned) return;
 
-    final List<Barcode> barcodes = capture.barcodes;
-    for (final barcode in barcodes) {
+    for (final ms.Barcode barcode in capture.barcodes) {
       final String? value = barcode.rawValue;
       if (value != null && value.isNotEmpty) {
         setState(() {
           _isScanned = true;
+          _scannedData = value;
         });
 
         final datosExtraidos = analizarDatosDelCodigo(value);
 
-        // Mostrar mensaje si no se extrajo nada útil
         if (datosExtraidos == null) {
+          setState(() => _huboError = true);
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('No se detectó información útil en el código.'),
@@ -35,29 +74,71 @@ class _InvoiceEntryScreenState extends State<InvoiceEntryScreen> {
           );
         }
 
-        // Ir a pantalla de ingreso con o sin datos
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
             builder:
-                (context) => FacturaFormScreen(
+                (_) => FacturaFormScreen(
                   datos: datosExtraidos,
                   contenidoOriginal: value,
+                  imagenFactura: _imagenSeleccionada,
                 ),
           ),
         );
-
         break;
       }
     }
   }
 
-
   void _resetScan() {
     setState(() {
       _scannedData = '';
       _isScanned = false;
+      _huboError = false;
+      _imagenSeleccionada = null;
     });
+  }
+
+  Future<void> _escanearDesdeGaleria() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? imagen = await picker.pickImage(source: ImageSource.gallery);
+
+    if (imagen != null) {
+      setState(() {
+        _imagenSeleccionada = File(imagen.path);
+      });
+
+      final inputImage = InputImage.fromFile(_imagenSeleccionada!);
+      final scanner = BarcodeScanner();
+      final List<mlkit.Barcode> barcodes = await scanner.processImage(
+        inputImage,
+      );
+
+
+      if (barcodes.isEmpty || barcodes.first.rawValue == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No se detectó ningún código en la imagen.'),
+          ),
+        );
+        return;
+      }
+
+      final codigo = barcodes.first.rawValue!;
+      final datos = analizarDatosDelCodigo(codigo);
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder:
+              (_) => FacturaFormScreen(
+                datos: datos,
+                contenidoOriginal: codigo,
+                imagenFactura: _imagenSeleccionada,
+              ),
+        ),
+      );
+    }
   }
 
   @override
@@ -65,10 +146,7 @@ class _InvoiceEntryScreenState extends State<InvoiceEntryScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFF070707),
       appBar: AppBar(
-        title: const Text(
-          'Escáner de Factura',
-          style: TextStyle(color: Colors.white, fontFamily: 'Poppins'),
-        ),
+        title: const Text('Escáner de Factura'),
         backgroundColor: const Color(0xFF070707),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
@@ -77,7 +155,7 @@ class _InvoiceEntryScreenState extends State<InvoiceEntryScreen> {
           Expanded(
             flex: 3,
             child: MobileScanner(
-              controller: MobileScannerController(facing: CameraFacing.back),
+              controller: _scannerController,
               onDetect: _onDetect,
             ),
           ),
@@ -85,37 +163,44 @@ class _InvoiceEntryScreenState extends State<InvoiceEntryScreen> {
             flex: 2,
             child: Container(
               padding: const EdgeInsets.all(16),
-              width: double.infinity,
               color: Colors.black,
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
                     _scannedData.isNotEmpty
                         ? 'Datos escaneados:\n$_scannedData'
-                        : 'Escanea un código QR o de barras...',
+                        : 'Escanea un código o selecciona una imagen.',
                     style: const TextStyle(color: Colors.white70, fontSize: 16),
                   ),
-                  const SizedBox(height: 20),
-                  ElevatedButton.icon(
-                    onPressed: _resetScan,
-                    icon: const Icon(Icons.restart_alt),
-                    label: const Text('Volver a escanear'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF6552FE),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 30,
-                        vertical: 15,
-                      ),
-                      textStyle: const TextStyle(
-                        fontSize: 16,
-                        fontFamily: 'Poppins',
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                  const SizedBox(height: 10),
+
+                  if (_imagenSeleccionada != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 10),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.file(
+                          _imagenSeleccionada!,
+                          height: 180,
+                          fit: BoxFit.contain,
+                        ),
                       ),
                     ),
+
+                  const SizedBox(height: 10),
+
+                  if (_huboError)
+                    ElevatedButton.icon(
+                      onPressed: _resetScan,
+                      icon: const Icon(Icons.restart_alt),
+                      label: const Text('Volver a escanear'),
+                    ),
+
+                  OutlinedButton.icon(
+                    onPressed: _escanearDesdeGaleria,
+                    icon: const Icon(Icons.photo),
+                    label: const Text('Seleccionar imagen desde galería'),
                   ),
                 ],
               ),
@@ -127,38 +212,12 @@ class _InvoiceEntryScreenState extends State<InvoiceEntryScreen> {
   }
 }
 
-Map<String, dynamic>? analizarDatosDelCodigo(String value) {
-  final Map<String, dynamic> datos = {};
-
-  final lines = value.split(RegExp(r'\r?\n'));
-  for (var line in lines) {
-    final partes = line.split('=');
-    if (partes.length == 2) {
-      final key = partes[0].trim();
-      final val = partes[1].trim();
-
-      switch (key) {
-        case 'FecFac':
-          datos['fecha'] = val;
-          break;
-        case 'ValTolFac':
-          datos['total'] = val;
-          break;
-        case 'NitFac':
-          datos['nit'] = val;
-          break;
-        case 'ValFac':
-          datos['subtotal'] = val;
-          break;
-        case 'ValIva':
-          datos['iva'] = val;
-          break;
-        case 'NumFac':
-          datos['numeroFactura'] = val;
-          break;
-      }
-    }
+// Esta función debe venir de tu lógica
+Map<String, dynamic>? analizarDatosDelCodigo(String texto) {
+  // Analiza y retorna Map con los datos o null
+  // Ejemplo mínimo:
+  if (texto.contains('FecFac')) {
+    return {'fecha': '2025-06-08'};
   }
-
-  return datos.isEmpty ? null : datos;
+  return null;
 }

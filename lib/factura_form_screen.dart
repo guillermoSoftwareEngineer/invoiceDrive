@@ -1,10 +1,20 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 
 class FacturaFormScreen extends StatefulWidget {
   final Map<String, dynamic>? datos;
   final String? contenidoOriginal;
+  final File? imagenFactura;
 
-  const FacturaFormScreen({super.key, this.datos, this.contenidoOriginal});
+  const FacturaFormScreen({
+    super.key,
+    this.datos,
+    this.contenidoOriginal,
+    this.imagenFactura,
+  });
 
   @override
   State<FacturaFormScreen> createState() => _FacturaFormScreenState();
@@ -20,6 +30,8 @@ class _FacturaFormScreenState extends State<FacturaFormScreen> {
   late TextEditingController ivaController;
   late TextEditingController totalController;
 
+  File? _imagenFactura;
+
   @override
   void initState() {
     super.initState();
@@ -29,7 +41,6 @@ class _FacturaFormScreenState extends State<FacturaFormScreen> {
       text: widget.datos?['numeroFactura'] ?? '',
     );
     nitController = TextEditingController(text: widget.datos?['nit'] ?? '');
-
     subtotalController = TextEditingController(
       text: widget.datos?['subtotal'] ?? '',
     );
@@ -39,6 +50,7 @@ class _FacturaFormScreenState extends State<FacturaFormScreen> {
     subtotalController.addListener(calcularTotal);
     ivaController.addListener(calcularTotal);
 
+    _imagenFactura = widget.imagenFactura;
     calcularTotal(); // inicializa el total si hay datos precargados
   }
 
@@ -47,6 +59,72 @@ class _FacturaFormScreenState extends State<FacturaFormScreen> {
     final iva = double.tryParse(ivaController.text) ?? 0.0;
     final total = subtotal + iva;
     totalController.text = total.toStringAsFixed(2);
+  }
+
+  Future<String?> subirImagen(File imagen) async {
+    try {
+      final ref = FirebaseStorage.instance
+          .ref()
+          .child('facturas')
+          .child('${DateTime.now().millisecondsSinceEpoch}.jpg');
+      final uploadTask = await ref.putFile(imagen);
+      return await uploadTask.ref.getDownloadURL();
+    } catch (e) {
+      print("Error subiendo imagen: $e");
+      return null;
+    }
+  }
+
+  Future<void> guardarFactura() async {
+    if (_formKey.currentState!.validate()) {
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid == null) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('No hay sesión activa')));
+        return;
+      }
+
+      final datos = {
+        'fecha': fechaController.text.trim(),
+        'nit': nitController.text.trim(),
+        'subtotal': subtotalController.text.trim(),
+        'iva': ivaController.text.trim(),
+        'total': totalController.text.trim(),
+        'fechaRegistro': FieldValue.serverTimestamp(),
+      };
+
+      final numero = numeroController.text.trim();
+      if (numero.isNotEmpty) {
+        datos['numeroFactura'] = numero;
+      }
+
+      // Subir imagen si existe
+      if (_imagenFactura != null) {
+        final url = await subirImagen(_imagenFactura!);
+        if (url != null) {
+          datos['urlImagen'] = url;
+        }
+      }
+
+      try {
+        await FirebaseFirestore.instance
+            .collection('usuarios')
+            .doc(uid)
+            .collection('facturas')
+            .add(datos);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Factura guardada correctamente')),
+        );
+
+        Navigator.pop(context);
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al guardar la factura: $e')),
+        );
+      }
+    }
   }
 
   @override
@@ -119,30 +197,19 @@ class _FacturaFormScreenState extends State<FacturaFormScreen> {
               ),
               const SizedBox(height: 30),
               ElevatedButton.icon(
-                onPressed: () {
-                  if (_formKey.currentState!.validate()) {
-                    final datos = {
-                      'numeroFactura': numeroController.text,
-                      'fecha': fechaController.text,
-                      'nit': nitController.text,
-                      'subtotal': subtotalController.text,
-                      'iva': ivaController.text,
-                      'total': totalController.text,
-                    };
-
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Datos validados y listos para guardar'),
-                      ),
-                    );
-
-                    print(datos);
-                  }
-                },
+                onPressed: guardarFactura,
                 icon: const Icon(Icons.save),
                 label: const Text('Guardar Factura'),
               ),
               const SizedBox(height: 30),
+              if (_imagenFactura != null)
+                Column(
+                  children: [
+                    const Text('Imagen asociada:'),
+                    const SizedBox(height: 10),
+                    Image.file(_imagenFactura!, height: 200),
+                  ],
+                ),
             ],
           ),
         ),
