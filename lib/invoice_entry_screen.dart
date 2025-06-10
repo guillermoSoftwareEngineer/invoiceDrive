@@ -202,6 +202,29 @@ void _onDetect(ms.BarcodeCapture capture) {
                     icon: const Icon(Icons.photo),
                     label: const Text('Seleccionar imagen desde galería'),
                   ),
+                  const SizedBox(height: 10),
+
+                  // ➕ Botón para agregar factura manualmente
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const FacturaFormScreen(),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.edit_document),
+                    label: const Text('Agregar factura manualmente'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      side: const BorderSide(color: Colors.white70),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 30,
+                        vertical: 15,
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),

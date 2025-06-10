@@ -60,28 +60,6 @@ class VisualRegisterScreen extends StatelessWidget {
                 ),
               ),
 
-            const SizedBox(height: 10),
-
-            // ➕ Botón para agregar factura manualmente
-            OutlinedButton.icon(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const FacturaFormScreen()),
-                );
-              },
-              icon: const Icon(Icons.edit_document),
-              label: const Text('Agregar factura manualmente'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.white,
-                side: const BorderSide(color: Colors.white70),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 30,
-                  vertical: 15,
-                ),
-              ),
-            ),
-
             const SizedBox(height: 30),
 
             ElevatedButton.icon(
