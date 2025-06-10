@@ -29,29 +29,67 @@ class _FacturaFormScreenState extends State<FacturaFormScreen> {
   late TextEditingController subtotalController;
   late TextEditingController ivaController;
   late TextEditingController totalController;
+  bool mostrarNumeroFactura = false;
+  List<String> categorias = [];
+  String? categoriaSeleccionada;
 
   File? _imagenFactura;
+
+  Future<void> cargarCategorias() async {
+    await Future.delayed(Duration.zero); // asegura que el widget esté montado
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) return;
+
+    final snapshot =
+        await FirebaseFirestore.instance
+            .collection('usuarios')
+            .doc(user.uid)
+            .collection('categorias')
+            .get();
+
+    if (!mounted) return;
+
+    setState(() {
+      categorias = snapshot.docs.map((e) => e['nombre'].toString()).toList();
+    });
+  }
 
   @override
   void initState() {
     super.initState();
 
-    fechaController = TextEditingController(text: widget.datos?['fecha'] ?? '');
+    final datos = widget.datos ?? {};
+    mostrarNumeroFactura =
+        datos.containsKey('numeroFactura') || datos.containsKey('NumFac');
+
+    fechaController = TextEditingController(
+      text: datos['fecha'] ?? datos['FecFac'] ?? '',
+    );
     numeroController = TextEditingController(
-      text: widget.datos?['numeroFactura'] ?? '',
+      text: datos['numeroFactura'] ?? datos['NumFac'] ?? '',
     );
-    nitController = TextEditingController(text: widget.datos?['nit'] ?? '');
+    nitController = TextEditingController(
+      text: datos['nit'] ?? datos['NitFac'] ?? '',
+    );
     subtotalController = TextEditingController(
-      text: widget.datos?['subtotal'] ?? '',
+      text: datos['subtotal'] ?? datos['ValFac'] ?? '',
     );
-    ivaController = TextEditingController(text: widget.datos?['iva'] ?? '');
-    totalController = TextEditingController();
+    ivaController = TextEditingController(
+      text: datos['iva'] ?? datos['ValIva'] ?? '',
+    );
+    totalController = TextEditingController(
+      text: datos['total'] ?? datos['ValTolFac'] ?? '',
+    );
 
     subtotalController.addListener(calcularTotal);
     ivaController.addListener(calcularTotal);
 
     _imagenFactura = widget.imagenFactura;
-    calcularTotal(); // inicializa el total si hay datos precargados
+
+    calcularTotal();
+
+    cargarCategorias();
   }
 
   void calcularTotal() {
@@ -92,11 +130,18 @@ class _FacturaFormScreenState extends State<FacturaFormScreen> {
         'iva': ivaController.text.trim(),
         'total': totalController.text.trim(),
         'fechaRegistro': FieldValue.serverTimestamp(),
+        'categoria': categoriaSeleccionada ?? 'Sin categoría',
       };
 
+      // Agrega número si existe
       final numero = numeroController.text.trim();
       if (numero.isNotEmpty) {
         datos['numeroFactura'] = numero;
+      }
+
+      // 🔹 Agrega el enlace de la DIAN si existe
+      if (widget.datos?['urlConsultaDian'] != null) {
+        datos['urlConsultaDian'] = widget.datos!['urlConsultaDian'];
       }
 
       // Subir imagen si existe
@@ -138,6 +183,48 @@ class _FacturaFormScreenState extends State<FacturaFormScreen> {
     super.dispose();
   }
 
+  void mostrarDialogoNuevaCategoria() {
+    final controller = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder:
+          (_) => AlertDialog(
+            title: const Text("Nueva Categoría"),
+            content: TextField(
+              controller: controller,
+              decoration: const InputDecoration(labelText: "Nombre"),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text("Cancelar"),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  final nombre = controller.text.trim();
+                  if (nombre.isEmpty) return;
+
+                  final uid = FirebaseAuth.instance.currentUser?.uid;
+                  if (uid != null) {
+                    await FirebaseFirestore.instance
+                        .collection('usuarios')
+                        .doc(uid)
+                        .collection('categorias')
+                        .add({'nombre': nombre});
+
+                    Navigator.pop(context);
+                    await cargarCategorias();
+                    setState(() => categoriaSeleccionada = nombre);
+                  }
+                },
+                child: const Text("Guardar"),
+              ),
+            ],
+          ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -148,19 +235,15 @@ class _FacturaFormScreenState extends State<FacturaFormScreen> {
           key: _formKey,
           child: Column(
             children: [
-              TextFormField(
-                controller: numeroController,
-                enabled: widget.datos?['numeroFactura'] == null,
-                decoration: const InputDecoration(
-                  labelText: 'Número de Factura *',
-                  suffixIcon: Icon(Icons.lock_outline),
+              if (mostrarNumeroFactura)
+                TextFormField(
+                  controller: numeroController,
+                  enabled: false,
+                  decoration: const InputDecoration(
+                    labelText: 'Número de Factura',
+                    suffixIcon: Icon(Icons.lock_outline),
+                  ),
                 ),
-                validator:
-                    (value) =>
-                        value == null || value.trim().isEmpty
-                            ? 'Campo obligatorio'
-                            : null,
-              ),
               TextFormField(
                 controller: fechaController,
                 decoration: const InputDecoration(
@@ -178,6 +261,32 @@ class _FacturaFormScreenState extends State<FacturaFormScreen> {
                             ? 'Campo obligatorio'
                             : null,
               ),
+              DropdownButtonFormField<String>(
+                decoration: const InputDecoration(labelText: 'Categoría *'),
+                value: categoriaSeleccionada,
+                items:
+                    categorias
+                        .map(
+                          (cat) =>
+                              DropdownMenuItem(value: cat, child: Text(cat)),
+                        )
+                        .toList(),
+                onChanged: (value) {
+                  setState(() => categoriaSeleccionada = value);
+                },
+                validator:
+                    (value) =>
+                        value == null
+                            ? 'Por favor seleccione una categoría'
+                            : null,
+              ),
+
+              TextButton.icon(
+                onPressed: mostrarDialogoNuevaCategoria,
+                icon: const Icon(Icons.add),
+                label: const Text("Crear categoría"),
+              ),
+
               TextFormField(
                 controller: subtotalController,
                 keyboardType: TextInputType.number,

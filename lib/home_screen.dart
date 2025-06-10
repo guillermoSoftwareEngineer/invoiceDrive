@@ -5,6 +5,8 @@ import 'dart:io';
 import 'package:intl/intl.dart';
 import 'invoice_entry_screen.dart';
 import 'visual_register_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'main.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -325,9 +327,40 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.settings, color: Colors.white),
+            icon: const Icon(Icons.logout),
+            tooltip: 'Cerrar sesión',
             onPressed: () {
-              // Acción para ajustes
+              showDialog(
+                context: context,
+                builder:
+                    (context) => AlertDialog(
+                      title: const Text('¿Cerrar sesión?'),
+                      content: const Text(
+                        '¿Estás seguro de que deseas cerrar tu sesión actual?',
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          child: const Text('Cancelar'),
+                        ),
+                        ElevatedButton(
+                          onPressed: () async {
+                            Navigator.of(context).pop(); // Cierra el diálogo
+                            await FirebaseAuth.instance.signOut();
+                            if (context.mounted) {
+                              Navigator.of(context).pushAndRemoveUntil(
+                                MaterialPageRoute(
+                                  builder: (_) => const MyApp(),
+                                ),
+                                (route) => false,
+                              );
+                            }
+                          },
+                          child: const Text('Sí, cerrar'),
+                        ),
+                      ],
+                    ),
+              );
             },
           ),
         ],

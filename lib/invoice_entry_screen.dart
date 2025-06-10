@@ -4,10 +4,9 @@ import 'package:image_picker/image_picker.dart';
 import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'factura_form_screen.dart';
-import 'package:mobile_scanner/mobile_scanner.dart' as ms;
 import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart'
     as mlkit;
-
+import 'package:mobile_scanner/mobile_scanner.dart' as ms;
 
 class InvoiceEntryScreen extends StatefulWidget {
   const InvoiceEntryScreen({super.key});
@@ -24,8 +23,7 @@ class _InvoiceEntryScreenState extends State<InvoiceEntryScreen> {
 
   final MobileScannerController _scannerController = MobileScannerController();
 
-
-Future<void> _seleccionarImagen() async {
+  Future<void> _seleccionarImagen() async {
     final pickedFile = await ImagePicker().pickImage(
       source: ImageSource.gallery,
     );
@@ -34,7 +32,64 @@ Future<void> _seleccionarImagen() async {
       setState(() {
         _imagenSeleccionada = File(pickedFile.path);
       });
+
+      // Mostrar imagen en un diálogo flotante
+      showDialog(
+        context: context,
+        builder:
+            (context) => AlertDialog(
+              backgroundColor: Colors.black,
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Image.file(File(pickedFile.path)),
+                  const SizedBox(height: 10),
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.qr_code_scanner),
+                    label: const Text('Escanear código de la imagen'),
+                    onPressed: () {
+                      Navigator.of(context).pop(); // Cierra el modal
+                      _escanearDesdeArchivo(File(pickedFile.path));
+                    },
+                  ),
+                ],
+              ),
+            ),
+      );
     }
+  }
+
+  Future<void> _escanearDesdeArchivo(File archivo) async {
+    final inputImage = mlkit.InputImage.fromFile(archivo);
+    final scanner = mlkit.BarcodeScanner(
+      formats: [mlkit.BarcodeFormat.qrCode], // Usa el alias
+    );
+
+    final List<mlkit.Barcode> barcodes = await scanner.processImage(inputImage);
+
+    if (barcodes.isEmpty || barcodes.first.rawValue == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No se detectó ningún código en la imagen.'),
+        ),
+      );
+      return;
+    }
+
+    final codigo = barcodes.first.rawValue!;
+    final datos = analizarDatosDelCodigo(codigo);
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder:
+            (_) => FacturaFormScreen(
+              datos: datos,
+              contenidoOriginal: codigo,
+              imagenFactura: archivo,
+            ),
+      ),
+    );
   }
 
   void _navegarAlFormulario() {
@@ -51,8 +106,7 @@ Future<void> _seleccionarImagen() async {
     );
   }
 
-void _onDetect(ms.BarcodeCapture capture) {
-  
+  void _onDetect(ms.BarcodeCapture capture) {
     if (_isScanned) return;
 
     for (final ms.Barcode barcode in capture.barcodes) {
@@ -113,7 +167,6 @@ void _onDetect(ms.BarcodeCapture capture) {
       final List<mlkit.Barcode> barcodes = await scanner.processImage(
         inputImage,
       );
-
 
       if (barcodes.isEmpty || barcodes.first.rawValue == null) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -235,12 +288,30 @@ void _onDetect(ms.BarcodeCapture capture) {
   }
 }
 
-// Esta función debe venir de tu lógica
 Map<String, dynamic>? analizarDatosDelCodigo(String texto) {
-  // Analiza y retorna Map con los datos o null
-  // Ejemplo mínimo:
-  if (texto.contains('FecFac')) {
-    return {'fecha': '2025-06-08'};
+  final Map<String, dynamic> datos = {};
+
+  final regex = RegExp(r'(\w+)=([^\n\r]+)');
+  final matches = regex.allMatches(texto);
+
+  for (final match in matches) {
+    final key = match.group(1)?.trim();
+    final value = match.group(2)?.trim();
+
+    if (key != null && value != null) {
+      datos[key] = value;
+    }
   }
-  return null;
+
+  if (datos.isEmpty) return null;
+
+  return {
+    'fecha': datos['FecFac'],
+    'numeroFactura': datos['NumFac'],
+    'nit': datos['NitFac'],
+    'subtotal': datos['ValFac'],
+    'iva': datos['ValIva'],
+    'total': datos['ValTolFac'],
+    'urlConsultaDian': datos['QRCode'], // 🔹 Aquí lo guardamos
+  };
 }
