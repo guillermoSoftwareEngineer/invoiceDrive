@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:intl/intl.dart';
+import 'home_screen.dart';
 
 class FacturaFormScreen extends StatefulWidget {
   final Map<String, dynamic>? datos;
@@ -163,7 +165,10 @@ class _FacturaFormScreenState extends State<FacturaFormScreen> {
           const SnackBar(content: Text('Factura guardada correctamente')),
         );
 
-        Navigator.pop(context);
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const HomeScreen()),
+          (route) => false,
+        );
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error al guardar la factura: $e')),
@@ -246,9 +251,29 @@ class _FacturaFormScreenState extends State<FacturaFormScreen> {
                 ),
               TextFormField(
                 controller: fechaController,
+                readOnly: true,
                 decoration: const InputDecoration(
                   labelText: 'Fecha de la Factura',
+                  suffixIcon: Icon(Icons.calendar_today),
                 ),
+                onTap: () async {
+                  FocusScope.of(
+                    context,
+                  ).requestFocus(FocusNode()); // Quitar teclado
+                  final DateTime? fechaSeleccionada = await showDatePicker(
+                    context: context,
+                    initialDate: DateTime.now(),
+                    firstDate: DateTime(2000),
+                    lastDate: DateTime.now(), // ← no permite fechas futuras
+                    locale: const Locale('es', 'CO'),
+                    helpText: 'Selecciona la fecha de la factura',
+                  );
+
+                  if (fechaSeleccionada != null) {
+                    final formato = DateFormat('yyyy-MM-dd');
+                    fechaController.text = formato.format(fechaSeleccionada);
+                  }
+                },
               ),
               TextFormField(
                 controller: nitController,

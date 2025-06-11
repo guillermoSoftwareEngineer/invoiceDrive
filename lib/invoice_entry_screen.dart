@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:image/image.dart' as img;
 import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'factura_form_screen.dart';
@@ -59,11 +60,25 @@ class _InvoiceEntryScreenState extends State<InvoiceEntryScreen> {
     }
   }
 
+  Future<File> redimensionarImagen(File original) async {
+    final bytes = await original.readAsBytes();
+    final image = img.decodeImage(bytes);
+
+    if (image == null) return original;
+
+    // Redimensionamos a un ancho razonable
+    final resized = img.copyResize(image, width: 800);
+    final resizedBytes = img.encodeJpg(resized);
+
+    final path = original.path.replaceFirst('.jpg', '_resized.jpg');
+    return File(path).writeAsBytes(resizedBytes);
+  }
+
   Future<void> _escanearDesdeArchivo(File archivo) async {
-    final inputImage = mlkit.InputImage.fromFile(archivo);
-    final scanner = mlkit.BarcodeScanner(
-      formats: [mlkit.BarcodeFormat.qrCode], // Usa el alias
-    );
+    final archivoRedimensionado = await redimensionarImagen(archivo);
+
+    final inputImage = mlkit.InputImage.fromFile(archivoRedimensionado);
+    final scanner = mlkit.BarcodeScanner(formats: [mlkit.BarcodeFormat.qrCode]);
 
     final List<mlkit.Barcode> barcodes = await scanner.processImage(inputImage);
 
@@ -91,6 +106,7 @@ class _InvoiceEntryScreenState extends State<InvoiceEntryScreen> {
       ),
     );
   }
+
 
   void _navegarAlFormulario() {
     Navigator.pushReplacement(
