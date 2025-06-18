@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class RegistroManualScreen extends StatefulWidget {
   const RegistroManualScreen({super.key});
@@ -26,6 +24,8 @@ class _RegistroManualScreenState extends State<RegistroManualScreen> {
 
     setState(() => _cargando = true);
 
+    // Comentado temporalmente para configuración futura de Firebase Auth y Firestore
+    /*
     try {
       // Intentar crear el usuario
       final cred = await FirebaseAuth.instance.createUserWithEmailAndPassword(
@@ -46,10 +46,12 @@ class _RegistroManualScreenState extends State<RegistroManualScreen> {
             'fechaRegistro': FieldValue.serverTimestamp(),
           });
 
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Usuario registrado con éxito')),
       );
 
+      if (!mounted) return;
       Navigator.pop(context);
     } on FirebaseAuthException catch (e) {
       String mensaje = 'Ocurrió un error inesperado';
@@ -72,16 +74,28 @@ class _RegistroManualScreenState extends State<RegistroManualScreen> {
           break;
       }
 
+      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(mensaje)));
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error inesperado: ${e.toString()}')),
       );
     } finally {
       setState(() => _cargando = false);
     }
+    */
+
+    // Navegación temporal después de un intento de registro (simulado)
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Funcionalidad de registro deshabilitada temporalmente.')),
+    );
+    Navigator.pop(context); // Regresar a la pantalla anterior
+
+    setState(() => _cargando = false); // Asegurarse de que el indicador de carga se desactive
   }
 
 

@@ -6,6 +6,7 @@ class Invoice {
   final DateTime date;
   final String type; // "Ingreso" o "Egreso"
   final String status; // "Activo", "Obligacion", etc. (aunque lo determinaremos)
+  final Map<String, dynamic>? additionalData;
 
   Invoice({
     required this.id,
@@ -14,6 +15,7 @@ class Invoice {
     required this.date,
     required this.type,
     required this.status,
+    this.additionalData,
   });
 
   // Convertir un objeto Invoice a un Map (para guardar en SharedPreferences)
@@ -25,6 +27,7 @@ class Invoice {
       'date': date.toIso8601String(),
       'type': type,
       'status': status,
+      'additionalData': additionalData,
     };
   }
 
@@ -37,6 +40,7 @@ class Invoice {
       date: DateTime.parse(json['date']),
       type: json['type'],
       status: json['status'],
+      additionalData: json['additionalData'],
     );
   }
 }

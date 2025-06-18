@@ -1,18 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:invoice_d/home_screen.dart'; // Importa la pantalla principal
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+// import 'package:firebase_core/firebase_core.dart'; // Comentado: Firebase
 
-import 'services/auth_service.dart';
 import 'registro_manual_screen.dart';
-import 'services/auth_service.dart';
-
-import 'home_screen.dart';
 import 'login_email_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+  // await Firebase.initializeApp(); // Comentado: Firebase
   runApp(const MyApp());
 }
 
@@ -112,10 +106,11 @@ class MyApp extends StatelessWidget {
         ),
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      home:
-          FirebaseAuth.instance.currentUser != null
-              ? const HomeScreen()
-              : const WelcomeScreen(),
+      // home: // Comentado para configuración futura
+      //     FirebaseAuth.instance.currentUser != null
+      //         ? const HomeScreen()
+      //         : const WelcomeScreen(),
+      home: const WelcomeScreen(), // Navega directamente a WelcomeScreen
     );
   }
 }

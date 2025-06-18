@@ -3,8 +3,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:intl/intl.dart';
-import 'invoice_entry_screen.dart';
+import 'dart:convert'; // Import for JSON encoding/decoding
+import 'invoice_entry_screen.dart'; // Importamos InvoiceEntryScreen
 import 'visual_register_screen.dart';
+import 'invoice.dart'; // Assuming you have an Invoice model
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -17,11 +19,14 @@ class _HomeScreenState extends State<HomeScreen> {
   String _userName = 'Usuario';
   String? _userProfilePicPath;
   double _currentBudget = 0.0;
+  List<Invoice> _invoices = []; // List to store invoices
+  Invoice? _lastInvoice; // Store the last added invoice
 
   @override
   void initState() {
     super.initState();
     _loadUserData();
+    _loadInvoices(); // Load invoices when the screen initializes
   }
 
   Future<void> _loadUserData() async {
@@ -32,6 +37,39 @@ class _HomeScreenState extends State<HomeScreen> {
       _currentBudget = prefs.getDouble('currentBudget') ?? 0.0;
     });
   }
+
+  Future<void> _loadInvoices() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String? invoicesString = prefs.getString('invoices');
+    if (invoicesString != null) {
+      final List<dynamic> invoiceList = jsonDecode(invoicesString);
+      setState(() {
+        _invoices = invoiceList.map((json) => Invoice.fromJson(json)).toList();
+      });
+    }
+  }
+
+  Future<void> _saveInvoices() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String invoicesString = jsonEncode(_invoices.map((invoice) => invoice.toJson()).toList());
+    await prefs.setString('invoices', invoicesString);
+  }
+
+  Future<void> _addInvoice(Invoice invoice) async {
+    setState(() {
+      _invoices.add(invoice);
+      // Update budget based on invoice type
+      if (invoice.type == 'Ingreso') {
+        _currentBudget += invoice.amount;
+      } else if (invoice.type == 'Egreso') {
+        _currentBudget -= invoice.amount;
+      }
+      _lastInvoice = invoice; // Set the last added invoice
+    });
+    await _saveInvoices();
+    await _saveCurrentBudget(_currentBudget); // Save updated budget
+  }
+
 
   Future<void> _saveUserName(String name) async {
     final prefs = await SharedPreferences.getInstance();
@@ -328,6 +366,7 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: const Icon(Icons.settings, color: Colors.white),
             onPressed: () {
               // Acción para ajustes
+              // print('Ajustes');
             },
           ),
         ],
@@ -380,23 +419,39 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                       ),
-                      const Row(
-                        children: [
-                          Icon(
-                            Icons.arrow_upward,
-                            color: Color.fromARGB(255, 30, 30, 30),
-                            size: 16,
-                          ),
-                          Text(
-                            'Última Factura',
-                            style: TextStyle(
-                              color: Color.fromARGB(255, 30, 30, 30),
-                              fontSize: 14,
-                              fontFamily: 'Poppins',
+                      _lastInvoice != null
+                          ? Row(
+                              children: [
+                                Icon(
+                                  _lastInvoice!.type == 'Ingreso'
+                                      ? Icons.arrow_upward
+                                      : Icons.arrow_downward,
+                                  color: _lastInvoice!.type == 'Ingreso'
+                                      ? Colors.greenAccent
+                                      : Colors.redAccent,
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 5),
+                                Text(
+                                  currencyFormatter.format(_lastInvoice!.amount),
+                                  style: TextStyle(
+                                    color: _lastInvoice!.type == 'Ingreso'
+                                        ? Colors.greenAccent
+                                        : Colors.redAccent,
+                                    fontSize: 14,
+                                    fontFamily: 'Poppins',
+                                  ),
+                                ),
+                              ],
+                            )
+                          : const Text(
+                              'Última Factura',
+                              style: TextStyle(
+                                color: Color.fromARGB(255, 30, 30, 30),
+                                fontSize: 14,
+                                fontFamily: 'Poppins',
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
                     ],
                   ),
                 ],
@@ -411,13 +466,19 @@ class _HomeScreenState extends State<HomeScreen> {
                   // Botón "Ingresa Factura"
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.push(
+                      onPressed: () async { // Mark as async
+                        // Navegar a InvoiceEntryScreen al presionar el botón
+                        // Navigate to InvoiceEntryScreen and wait for a result
+                        final result = await Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (context) => const InvoiceEntryScreen(),
                           ),
                         );
+                        // If a result (Invoice object) is returned, add it
+                        if (result != null && result is Invoice) {
+                          _addInvoice(result);
+                        }
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF6552FE),
@@ -516,34 +577,29 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
             const SizedBox(height: 20),
-            _buildInvoiceListItem(
-              context,
-              'Impresora',
-              'Compra',
-              '\$503.12',
-              'Activo',
-            ),
-            _buildInvoiceListItem(
-              context,
-              'Impuesto',
-              'Pago',
-              '\$26.927',
-              'Obligacion',
-            ),
-            _buildInvoiceListItem(
-              context,
-              'Inversión',
-              'Ingreso',
-              '\$69270',
-              'Activo',
-            ),
-            _buildInvoiceListItem(
-              context,
-              'Patrocinios',
-              'Ingreso',
-              '\$4637',
-              'Activo',
-            ),
+            // Dynamically build invoice list items
+            _invoices.isEmpty
+                ? const Center(
+                    child: Text(
+                      'No hay facturas registradas.',
+                      style: TextStyle(color: Colors.white70, fontSize: 16),
+                    ),
+                  )
+                : ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: _invoices.length,
+                    itemBuilder: (context, index) {
+                      final invoice = _invoices[index];
+                      return _buildInvoiceListItem(
+                        context,
+                        invoice.title, // Use 'title' instead of 'description'
+                        invoice.type,
+                        currencyFormatter.format(invoice.amount),
+                        invoice.status,
+                      );
+                    },
+                  ),
           ],
         ),
       ),
@@ -568,7 +624,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ¡MODIFICADO! Widget helper para construir los ítems de factura
+  // Widget helper para construir los ítems de factura
   Widget _buildInvoiceListItem(
     BuildContext context,
     String title,
@@ -584,19 +640,16 @@ class _HomeScreenState extends State<HomeScreen> {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: const Color(0xFF122125), // ¡Nuevo color de fondo!
+              color: subtitle == 'Ingreso' ? Colors.green : Colors.red, // Change color based on type
               borderRadius: BorderRadius.circular(8),
             ),
-            // ¡MODIFICADO! Usar Image.asset para el icono
             child: Center(
-              // Centra la imagen dentro del Container
               child: Image.asset(
                 'assets/images/icon.png', // Ruta a tu imagen
-                width: 25, // Tamaño de la imagen (25px)
-                height: 26, // Tamaño de la imagen (26px)
-                fit:
-                    BoxFit
-                        .contain, // Asegura que la imagen se ajuste dentro del espacio
+                width: 25,
+                height: 26,
+                fit: BoxFit.contain,
+                color: Colors.white, // Make the icon white to stand out on colored background
               ),
             ),
           ),

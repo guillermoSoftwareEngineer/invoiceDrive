@@ -5,10 +5,15 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'home_screen.dart';
 
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
-  Future<void> signInWithGoogle(BuildContext context) async {
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  Future<void> signInWithGoogle() async {
     final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
     if (googleUser == null) return; // Cancelado
 
@@ -25,6 +30,7 @@ class LoginScreen extends StatelessWidget {
     await prefs.setBool('isLoggedIn', true);
 
     // Navega a Home
+    if (!mounted) return;
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (_) => const HomeScreen()),
@@ -37,7 +43,7 @@ class LoginScreen extends StatelessWidget {
       backgroundColor: const Color(0xFF070707),
       body: Center(
         child: ElevatedButton(
-          onPressed: () => signInWithGoogle(context),
+          onPressed: () => signInWithGoogle(),
           child: const Text('Iniciar sesión con Google'),
         ),
       ),

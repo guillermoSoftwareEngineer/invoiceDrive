@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'factura_form_screen.dart'; // Asegúrate de importar tu formulario
-
 class VisualRegisterScreen extends StatelessWidget {
   final bool huboError;
   final String? mensajeError;

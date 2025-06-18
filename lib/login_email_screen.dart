@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:invoice_d/home_screen.dart';
+// import 'package:invoice_d/services/auth_service.dart'; // Comentado: Firebase Auth
+// import 'package:firebase_auth/firebase_auth.dart'; // Comentado: Firebase Auth
 
 class LoginEmailScreen extends StatefulWidget {
   const LoginEmailScreen({super.key});
@@ -15,11 +16,15 @@ class _LoginEmailScreenState extends State<LoginEmailScreen> {
   final passwordController = TextEditingController();
   bool _cargando = false;
 
+  // final AuthService _authService = AuthService(); // Comentado: Firebase Auth
+
   Future<void> iniciarSesion() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _cargando = true);
 
+    // Comentado: Firebase Auth
+    /*
     try {
       await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: correoController.text.trim(),
@@ -29,6 +34,7 @@ class _LoginEmailScreenState extends State<LoginEmailScreen> {
       final usuario = FirebaseAuth.instance.currentUser;
 
       if (usuario != null) {
+        if (!mounted) return;
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const HomeScreen()),
@@ -53,16 +59,28 @@ class _LoginEmailScreenState extends State<LoginEmailScreen> {
           mensaje = 'Error: ${e.message}';
       }
 
+      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(mensaje)));
     } catch (e) {
+      if (!mounted) return; // Add mounted check
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error inesperado: ${e.toString()}')),
       );
     } finally {
       setState(() => _cargando = false);
     }
+    */
+
+    // Navegación temporal para permitir el acceso sin autenticación
+    if (!mounted) return;
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const HomeScreen()),
+    );
+
+    setState(() => _cargando = false); // Asegurarse de que el indicador de carga se desactive
   }
 
   @override
@@ -105,6 +123,43 @@ class _LoginEmailScreenState extends State<LoginEmailScreen> {
                     icon: const Icon(Icons.login),
                     label: const Text('Iniciar sesión'),
                   ),
+              const SizedBox(height: 10), // Add spacing
+              // Comentado: Google Sign-In Button
+              /*
+              ElevatedButton.icon( // Google Sign-In Button
+                onPressed: () async {
+                  setState(() => _cargando = true);
+                  try {
+                    final user = await _authService.signInWithGoogle(); // Call on the instance
+                    if (user != null) {
+                      if (!mounted) return;
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(builder: (_) => const HomeScreen()),
+                      );
+                    } else {
+                       if (!mounted) return;
+                       ScaffoldMessenger.of(context).showSnackBar(
+                         const SnackBar(
+                           content: Text(
+                             'No se pudo completar el inicio con Google',
+                           ),
+                         ),
+                       );
+                    }
+                  } catch (e) {
+                    if (!mounted) return; // Add mounted check
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error al iniciar con Google: ${e.toString()}')),
+                    );
+                  } finally {
+                    setState(() => _cargando = false);
+                  }
+                },
+                icon: const Icon(Icons.account_circle), // Use a relevant icon
+                label: const Text('Iniciar sesión con Google'),
+              ),
+              */
             ],
           ),
         ),
