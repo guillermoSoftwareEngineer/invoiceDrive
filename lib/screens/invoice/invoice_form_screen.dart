@@ -4,8 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:intl/intl.dart';
-import '../home/home_screen.dart';
 import 'package:invoice_d/screens/widgets/loading_screen.dart';
+import '../home/home_screen.dart';
 
 class FacturaFormScreen extends StatefulWidget {
   final Map<String, dynamic>? datos;
@@ -37,7 +37,6 @@ class _FacturaFormScreenState extends State<FacturaFormScreen> {
   bool mostrarNumeroFactura = false;
   List<String> categorias = [];
   String? categoriaSeleccionada;
-
   File? _imagenFactura;
 
   Future<void> cargarCategorias() async {
@@ -63,7 +62,6 @@ class _FacturaFormScreenState extends State<FacturaFormScreen> {
   @override
   void initState() {
     super.initState();
-
     final datos = widget.datos ?? {};
     mostrarNumeroFactura =
         datos.containsKey('numeroFactura') || datos.containsKey('NumFac');
@@ -93,24 +91,39 @@ class _FacturaFormScreenState extends State<FacturaFormScreen> {
       text: datos['total'] ?? datos['ValTolFac'] ?? '',
     );
 
-    subtotalController.addListener(calcularTotal);
-    ivaController.addListener(calcularTotal);
+    subtotalController.addListener(_calcularTotal);
+    ivaController.addListener(_calcularTotal);
 
     _imagenFactura = widget.imagenFactura;
 
-    calcularTotal();
-
-    cargarCategorias();
+    _calcularTotal();
+    _cargarCategorias();
   }
 
-  void calcularTotal() {
+  Future<void> _cargarCategorias() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final snapshot = await FirebaseFirestore.instance
+        .collection('usuarios')
+        .doc(user.uid)
+        .collection('categorias')
+        .get();
+
+    if (!mounted) return;
+    setState(() {
+      categorias = snapshot.docs.map((e) => e['nombre'].toString()).toList();
+    });
+  }
+
+  void _calcularTotal() {
     final subtotal = double.tryParse(subtotalController.text) ?? 0.0;
     final iva = double.tryParse(ivaController.text) ?? 0.0;
     final total = subtotal + iva;
     totalController.text = total.toStringAsFixed(2);
   }
 
-  Future<String?> subirImagen(File imagen) async {
+  Future<String?> _subirImagen(File imagen) async {
     try {
       final ref = FirebaseStorage.instance
           .ref()
@@ -119,27 +132,31 @@ class _FacturaFormScreenState extends State<FacturaFormScreen> {
       final uploadTask = await ref.putFile(imagen);
       return await uploadTask.ref.getDownloadURL();
     } catch (e) {
-      print("Error subiendo imagen: $e");
+      debugPrint('Error subiendo imagen: $e');
       return null;
     }
   }
 
   Future<void> guardarFactura() async {
-    if (_formKey.currentState!.validate()) {
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          fullscreenDialog: true,
-          builder: (_) => const LoadingScreen(mensaje: 'Guardando factura...'),
-        ),
+    if (!_formKey.currentState!.validate()) return;
+    final ctx = context;
+
+    Navigator.of(ctx).push(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => const LoadingScreen(mensaje: 'Guardando factura...'),
+      ),
+    );
+
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) {
+      Navigator.of(ctx).pop();
+      if (!mounted) return;
+      ScaffoldMessenger.of(ctx).showSnackBar(
+        const SnackBar(content: Text('No hay sesión activa')),
       );
-      final uid = FirebaseAuth.instance.currentUser?.uid;
-      if (uid == null) {
-        Navigator.of(context).pop();
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('No hay sesión activa')));
-        return;
-      }
+      return;
+    }
 
       final DateTime? fechaFactura =
           fechaController.text.trim().isNotEmpty
@@ -178,29 +195,29 @@ class _FacturaFormScreenState extends State<FacturaFormScreen> {
         }
       }
 
-      try {
-        await FirebaseFirestore.instance
-            .collection('usuarios')
-            .doc(uid)
-            .collection('facturas')
-            .add(datos);
+    try {
+      await FirebaseFirestore.instance
+          .collection('usuarios')
+          .doc(uid)
+          .collection('facturas')
+          .add(datos);
 
-        Navigator.of(context).pop();
+      Navigator.of(ctx).pop();
+      if (!mounted) return;
+      ScaffoldMessenger.of(ctx).showSnackBar(
+        const SnackBar(content: Text('Factura guardada correctamente')),
+      );
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Factura guardada correctamente')),
-        );
-
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
-          (route) => false,
-        );
-      } catch (e) {
-        Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al guardar la factura: $e')),
-        );
-      }
+      Navigator.of(ctx).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const HomeScreen()),
+        (route) => false,
+      );
+    } catch (e) {
+      Navigator.of(ctx).pop();
+      if (!mounted) return;
+      ScaffoldMessenger.of(ctx).showSnackBar(
+        SnackBar(content: Text('Error al guardar la factura: $e')),
+      );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -210,38 +227,27 @@ class _FacturaFormScreenState extends State<FacturaFormScreen> {
     }
   }
 
-  @override
-  void dispose() {
-    fechaController.dispose();
-    numeroController.dispose();
-    nitController.dispose();
-    subtotalController.dispose();
-    ivaController.dispose();
-    totalController.dispose();
-    super.dispose();
-  }
-
-  void mostrarDialogoNuevaCategoria() {
+  void _mostrarDialogoNuevaCategoria() {
     final controller = TextEditingController();
+    final ctx = context;
 
     showDialog(
-      context: context,
-      builder:
-          (_) => AlertDialog(
-            title: const Text("Nueva Categoría"),
-            content: TextField(
-              controller: controller,
-              decoration: const InputDecoration(labelText: "Nombre"),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text("Cancelar"),
-              ),
-              ElevatedButton(
-                onPressed: () async {
-                  final nombre = controller.text.trim();
-                  if (nombre.isEmpty) return;
+      context: ctx,
+      builder: (_) => AlertDialog(
+        title: const Text('Nueva Categoría'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(labelText: 'Nombre'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final nombre = controller.text.trim();
+              if (nombre.isEmpty) return;
 
                   final uid = FirebaseAuth.instance.currentUser?.uid;
                   if (uid != null) {
@@ -255,16 +261,28 @@ class _FacturaFormScreenState extends State<FacturaFormScreen> {
                           'nombre': nombre,
                         });
 
-                    Navigator.pop(context);
-                    await cargarCategorias();
-                    setState(() => categoriaSeleccionada = nombre);
-                  }
-                },
-                child: const Text("Guardar"),
-              ),
-            ],
+                Navigator.pop(ctx);
+                await _cargarCategorias();
+                if (!mounted) return;
+                setState(() => categoriaSeleccionada = nombre);
+              }
+            },
+            child: const Text('Guardar'),
           ),
+        ],
+      ),
     );
+  }
+
+  @override
+  void dispose() {
+    fechaController.dispose();
+    numeroController.dispose();
+    nitController.dispose();
+    subtotalController.dispose();
+    ivaController.dispose();
+    totalController.dispose();
+    super.dispose();
   }
 
   @override
@@ -300,13 +318,13 @@ class _FacturaFormScreenState extends State<FacturaFormScreen> {
                     initialDate: DateTime.now(),
                     firstDate: DateTime(2000),
                     lastDate: DateTime.now(),
+                    lastDate: DateTime.now(),
                     locale: const Locale('es', 'CO'),
                     helpText: 'Selecciona la fecha de la factura',
                   );
-
                   if (fechaSeleccionada != null) {
-                    final formato = DateFormat('yyyy-MM-dd');
-                    fechaController.text = formato.format(fechaSeleccionada);
+                    fechaController.text =
+                        DateFormat('yyyy-MM-dd').format(fechaSeleccionada);
                   }
                 },
               ),
@@ -341,29 +359,19 @@ class _FacturaFormScreenState extends State<FacturaFormScreen> {
               DropdownButtonFormField<String>(
                 decoration: const InputDecoration(labelText: 'Categoría *'),
                 value: categoriaSeleccionada,
-                items:
-                    categorias
-                        .map(
-                          (cat) =>
-                              DropdownMenuItem(value: cat, child: Text(cat)),
-                        )
-                        .toList(),
-                onChanged: (value) {
-                  setState(() => categoriaSeleccionada = value);
-                },
-                validator:
-                    (value) =>
-                        value == null
-                            ? 'Por favor seleccione una categoría'
-                            : null,
+                items: categorias
+                    .map((cat) =>
+                        DropdownMenuItem(value: cat, child: Text(cat)))
+                    .toList(),
+                onChanged: (v) => setState(() => categoriaSeleccionada = v),
+                validator: (v) =>
+                    v == null ? 'Por favor seleccione una categoría' : null,
               ),
-
               TextButton.icon(
-                onPressed: mostrarDialogoNuevaCategoria,
+                onPressed: _mostrarDialogoNuevaCategoria,
                 icon: const Icon(Icons.add),
-                label: const Text("Crear categoría"),
+                label: const Text('Crear categoría'),
               ),
-
               TextFormField(
                 controller: subtotalController,
                 keyboardType: TextInputType.number,
@@ -377,9 +385,8 @@ class _FacturaFormScreenState extends State<FacturaFormScreen> {
               TextFormField(
                 controller: totalController,
                 readOnly: true,
-                decoration: const InputDecoration(
-                  labelText: 'Total de la factura',
-                ),
+                decoration:
+                    const InputDecoration(labelText: 'Total de la factura'),
               ),
               const SizedBox(height: 30),
               ElevatedButton.icon(
@@ -388,14 +395,11 @@ class _FacturaFormScreenState extends State<FacturaFormScreen> {
                 label: const Text('Guardar Factura'),
               ),
               const SizedBox(height: 30),
-              if (_imagenFactura != null)
-                Column(
-                  children: [
-                    const Text('Imagen asociada:'),
-                    const SizedBox(height: 10),
-                    Image.file(_imagenFactura!, height: 200),
-                  ],
-                ),
+              if (_imagenFactura != null) ...[
+                const Text('Imagen asociada:'),
+                const SizedBox(height: 10),
+                Image.file(_imagenFactura!, height: 200),
+              ],
             ],
           ),
         ),

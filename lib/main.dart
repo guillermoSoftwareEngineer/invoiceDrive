@@ -1,17 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:invoice_d/screens/auth/login_email_screen.dart';
 import 'package:invoice_d/screens/home/home_screen.dart';
+import 'package:invoice_d/screens/register/registro_manual_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-
-
-import 'services/auth_service.dart';
-import 'screens/register/registro_manual_screen.dart';
-import 'services/auth_service.dart';
-
-import 'screens/home/home_screen.dart';
-import 'screens/auth/login_email_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -59,59 +53,20 @@ class MyApp extends StatelessWidget {
         ),
         textTheme: const TextTheme(
           bodyLarge: TextStyle(fontFamily: 'Poppins', color: Color(0xFFFFFFFF)),
-          bodyMedium: TextStyle(
-            fontFamily: 'Poppins',
-            color: Color(0xFFFFFFFF),
-          ),
+          bodyMedium: TextStyle(fontFamily: 'Poppins', color: Color(0xFFFFFFFF)),
           bodySmall: TextStyle(fontFamily: 'Poppins', color: Color(0xFFFFFFFF)),
-          displayLarge: TextStyle(
-            fontFamily: 'Poppins',
-            color: Color(0xFFFFFFFF),
-          ),
-          displayMedium: TextStyle(
-            fontFamily: 'Poppins',
-            color: Color(0xFFFFFFFF),
-          ),
-          displaySmall: TextStyle(
-            fontFamily: 'Poppins',
-            color: Color(0xFFFFFFFF),
-          ),
-          headlineLarge: TextStyle(
-            fontFamily: 'Poppins',
-            color: Color(0xFFFFFFFF),
-          ),
-          headlineMedium: TextStyle(
-            fontFamily: 'Poppins',
-            color: Color(0xFFFFFFFF),
-          ),
-          headlineSmall: TextStyle(
-            fontFamily: 'Poppins',
-            color: Color(0xFFFFFFFF),
-          ),
-          labelLarge: TextStyle(
-            fontFamily: 'Poppins',
-            color: Color(0xFFFFFFFF),
-          ),
-          labelMedium: TextStyle(
-            fontFamily: 'Poppins',
-            color: Color(0xFFFFFFFF),
-          ),
-          labelSmall: TextStyle(
-            fontFamily: 'Poppins',
-            color: Color(0xFFFFFFFF),
-          ),
-          titleLarge: TextStyle(
-            fontFamily: 'Poppins',
-            color: Color(0xFFFFFFFF),
-          ),
-          titleMedium: TextStyle(
-            fontFamily: 'Poppins',
-            color: Color(0xFFFFFFFF),
-          ),
-          titleSmall: TextStyle(
-            fontFamily: 'Poppins',
-            color: Color(0xFFFFFFFF),
-          ),
+          displayLarge: TextStyle(fontFamily: 'Poppins', color: Color(0xFFFFFFFF)),
+          displayMedium: TextStyle(fontFamily: 'Poppins', color: Color(0xFFFFFFFF)),
+          displaySmall: TextStyle(fontFamily: 'Poppins', color: Color(0xFFFFFFFF)),
+          headlineLarge: TextStyle(fontFamily: 'Poppins', color: Color(0xFFFFFFFF)),
+          headlineMedium: TextStyle(fontFamily: 'Poppins', color: Color(0xFFFFFFFF)),
+          headlineSmall: TextStyle(fontFamily: 'Poppins', color: Color(0xFFFFFFFF)),
+          labelLarge: TextStyle(fontFamily: 'Poppins', color: Color(0xFFFFFFFF)),
+          labelMedium: TextStyle(fontFamily: 'Poppins', color: Color(0xFFFFFFFF)),
+          labelSmall: TextStyle(fontFamily: 'Poppins', color: Color(0xFFFFFFFF)),
+          titleLarge: TextStyle(fontFamily: 'Poppins', color: Color(0xFFFFFFFF)),
+          titleMedium: TextStyle(fontFamily: 'Poppins', color: Color(0xFFFFFFFF)),
+          titleSmall: TextStyle(fontFamily: 'Poppins', color: Color(0xFFFFFFFF)),
         ),
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
@@ -120,16 +75,18 @@ class MyApp extends StatelessWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      supportedLocales: const [Locale('es', 'CO'), Locale('en', 'US')],
-      home:
-          FirebaseAuth.instance.currentUser != null
-              ? const HomeScreen()
-              : const WelcomeScreen(),
+      supportedLocales: const [
+        Locale('es', 'CO'),
+        Locale('en', 'US'),
+      ],
+      home: FirebaseAuth.instance.currentUser != null
+          ? const HomeScreen()
+          : const WelcomeScreen(),
     );
   }
 }
 
-class WelcomeScreen  extends StatelessWidget {
+class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
 
   @override
@@ -164,7 +121,6 @@ class WelcomeScreen  extends StatelessWidget {
                 ),
               ),
             ),
-
             const SizedBox(height: 20),
             Expanded(
               child: Center(
@@ -224,9 +180,13 @@ class WelcomeScreen  extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 10),
+                  const SizedBox(height: 10),
                   const Text(
                     'Lleva tu compañía y su organización al siguiente nivel o gestiona tus finanzas personales',
                     style: TextStyle(
+                      color: Color(0xFFFFFFFF),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
                       color: Color(0xFFFFFFFF),
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
@@ -237,10 +197,7 @@ class WelcomeScreen  extends StatelessWidget {
             ),
 
             Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 20.0,
-                vertical: 10.0,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -248,9 +205,7 @@ class WelcomeScreen  extends StatelessWidget {
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
-                          builder: (_) => const LoginEmailScreen(),
-                        ),
+                        MaterialPageRoute(builder: (_) => const LoginEmailScreen()),
                       );
                     },
                     child: const Text('Iniciar sesión'),
@@ -259,17 +214,13 @@ class WelcomeScreen  extends StatelessWidget {
                   const SizedBox(height: 30),
 
                   ElevatedButton(
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.grey[800]),
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
-                          builder: (_) => const RegistroManualScreen(),
-                        ),
+                        MaterialPageRoute(builder: (_) => const RegistroManualScreen()),
                       );
                     },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.grey[800],
-                    ),
                     child: const Text('Registrarse'),
                   ),
                   const SizedBox(height: 10),
