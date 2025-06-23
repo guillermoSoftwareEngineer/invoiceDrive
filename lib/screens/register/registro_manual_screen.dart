@@ -23,37 +23,35 @@ class _RegistroManualScreenState extends State<RegistroManualScreen> {
 
   Future<void> registrarUsuario() async {
     if (!_formKey.currentState!.validate()) return;
-
     setState(() => _cargando = true);
+    final ctx = context;
 
     try {
-      // Intentar crear el usuario
-      final cred = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: correoController.text.trim(),
-        password: passwordController.text,
-      );
+      final cred = await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(
+            email: correoController.text.trim(),
+            password: passwordController.text,
+          );
 
-      // Guardar datos en Firestore
       await FirebaseFirestore.instance
           .collection('usuarios')
           .doc(cred.user!.uid)
           .set({
-            'uid': cred.user!.uid,
-            'nombre': nombresController.text.trim(),
-            'apellidos': apellidosController.text.trim(),
-            'correo': correoController.text.trim(),
-            'telefono': telefonoController.text.trim(),
-            'fechaRegistro': FieldValue.serverTimestamp(),
-          });
+        'uid': cred.user!.uid,
+        'nombre': nombresController.text.trim(),
+        'apellidos': apellidosController.text.trim(),
+        'correo': correoController.text.trim(),
+        'telefono': telefonoController.text.trim(),
+        'fechaRegistro': FieldValue.serverTimestamp(),
+      });
 
-      ScaffoldMessenger.of(context).showSnackBar(
+      if (!mounted) return;
+      ScaffoldMessenger.of(ctx).showSnackBar(
         const SnackBar(content: Text('Usuario registrado con éxito')),
       );
-
-      Navigator.pop(context);
+      Navigator.of(ctx).pop();
     } on FirebaseAuthException catch (e) {
       String mensaje = 'Ocurrió un error inesperado';
-
       switch (e.code) {
         case 'email-already-in-use':
           mensaje = 'Este correo ya está registrado';
@@ -69,21 +67,32 @@ class _RegistroManualScreenState extends State<RegistroManualScreen> {
           break;
         default:
           mensaje = 'Error: ${e.message}';
-          break;
       }
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(mensaje)));
+      if (!mounted) return;
+      ScaffoldMessenger.of(ctx).showSnackBar(
+        SnackBar(content: Text(mensaje)),
+      );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      if (!mounted) return;
+      ScaffoldMessenger.of(ctx).showSnackBar(
         SnackBar(content: Text('Error inesperado: ${e.toString()}')),
       );
     } finally {
+      if (!mounted) return;
       setState(() => _cargando = false);
     }
   }
 
+  @override
+  void dispose() {
+    nombresController.dispose();
+    apellidosController.dispose();
+    correoController.dispose();
+    telefonoController.dispose();
+    passwordController.dispose();
+    confirmarPasswordController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -98,20 +107,14 @@ class _RegistroManualScreenState extends State<RegistroManualScreen> {
               TextFormField(
                 controller: nombresController,
                 decoration: const InputDecoration(labelText: 'Nombres *'),
-                validator:
-                    (v) =>
-                        v == null || v.trim().isEmpty
-                            ? 'Campo obligatorio'
-                            : null,
+                validator: (v) =>
+                    v == null || v.trim().isEmpty ? 'Campo obligatorio' : null,
               ),
               TextFormField(
                 controller: apellidosController,
                 decoration: const InputDecoration(labelText: 'Apellidos *'),
-                validator:
-                    (v) =>
-                        v == null || v.trim().isEmpty
-                            ? 'Campo obligatorio'
-                            : null,
+                validator: (v) =>
+                    v == null || v.trim().isEmpty ? 'Campo obligatorio' : null,
               ),
               TextFormField(
                 controller: correoController,
@@ -141,25 +144,20 @@ class _RegistroManualScreenState extends State<RegistroManualScreen> {
               ),
               TextFormField(
                 controller: confirmarPasswordController,
-                decoration: const InputDecoration(
-                  labelText: 'Confirmar Contraseña *',
-                ),
+                decoration:
+                    const InputDecoration(labelText: 'Confirmar Contraseña *'),
                 obscureText: true,
-                validator: (v) {
-                  if (v != passwordController.text) {
-                    return 'Las contraseñas no coinciden';
-                  }
-                  return null;
-                },
+                validator: (v) =>
+                    v != passwordController.text ? 'Las contraseñas no coinciden' : null,
               ),
               const SizedBox(height: 20),
               _cargando
                   ? const CircularProgressIndicator()
                   : ElevatedButton.icon(
-                    onPressed: registrarUsuario,
-                    icon: const Icon(Icons.check),
-                    label: const Text('Registrarse'),
-                  ),
+                      onPressed: registrarUsuario,
+                      icon: const Icon(Icons.check),
+                      label: const Text('Registrarse'),
+                    ),
             ],
           ),
         ),

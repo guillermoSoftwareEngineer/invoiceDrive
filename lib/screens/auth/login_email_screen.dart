@@ -20,29 +20,35 @@ class _LoginEmailScreenState extends State<LoginEmailScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _cargando = true);
-    Navigator.of(context).push(
+    final BuildContext ctx = context;
+
+    Navigator.of(ctx).push(
       MaterialPageRoute(
         fullscreenDialog: true,
         builder: (_) => const LoadingScreen(mensaje: 'Iniciando sesión...'),
       ),
     );
+
     try {
       await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: correoController.text.trim(),
         password: passwordController.text,
       );
 
+      if (!mounted) return;
+      Navigator.of(ctx).pop();
+
       final usuario = FirebaseAuth.instance.currentUser;
-
-      Navigator.of(context).pop();
-
       if (usuario != null) {
         Navigator.pushReplacement(
-          context,
+          ctx,
           MaterialPageRoute(builder: (_) => const HomeScreen()),
         );
       }
     } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+      Navigator.of(ctx).pop();
+
       String mensaje = 'Ocurrió un error al iniciar sesión';
       switch (e.code) {
         case 'user-not-found':
@@ -60,15 +66,17 @@ class _LoginEmailScreenState extends State<LoginEmailScreen> {
         default:
           mensaje = 'Error: ${e.message}';
       }
-      Navigator.of(context).pop();
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(mensaje)));
+
+      ScaffoldMessenger.of(ctx).showSnackBar(
+        SnackBar(content: Text(mensaje)),
+      );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error inesperado: ${e.toString()}')),
+      if (!mounted) return;
+      ScaffoldMessenger.of(ctx).showSnackBar(
+        SnackBar(content: Text('Error inesperado: $e')),
       );
     } finally {
+      if (!mounted) return;
       setState(() => _cargando = false);
     }
   }
@@ -99,20 +107,17 @@ class _LoginEmailScreenState extends State<LoginEmailScreen> {
                 controller: passwordController,
                 obscureText: true,
                 decoration: const InputDecoration(labelText: 'Contraseña'),
-                validator:
-                    (v) =>
-                        v == null || v.length < 6
-                            ? 'Mínimo 6 caracteres'
-                            : null,
+                validator: (v) =>
+                    v == null || v.length < 6 ? 'Mínimo 6 caracteres' : null,
               ),
               const SizedBox(height: 20),
               _cargando
                   ? const CircularProgressIndicator()
                   : ElevatedButton.icon(
-                    onPressed: iniciarSesion,
-                    icon: const Icon(Icons.login),
-                    label: const Text('Iniciar sesión'),
-                  ),
+                      onPressed: iniciarSesion,
+                      icon: const Icon(Icons.login),
+                      label: const Text('Iniciar sesión'),
+                    ),
             ],
           ),
         ),

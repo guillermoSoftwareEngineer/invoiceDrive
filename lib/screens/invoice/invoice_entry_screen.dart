@@ -1,14 +1,13 @@
+// lib/screens/invoice/invoice_entry_screen.dart
+
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:image/image.dart' as img;
-import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart';
-import 'package:mobile_scanner/mobile_scanner.dart';
-import 'factura_form_screen.dart';
-import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart'
-    as mlkit;
+import 'package:image/image.dart' as img;                           // ← IMPORTADO
+import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart' as mlkit;
 import 'package:mobile_scanner/mobile_scanner.dart' as ms;
 import 'package:invoice_d/screens/widgets/loading_screen.dart';
+import 'factura_form_screen.dart';
 
 class InvoiceEntryScreen extends StatefulWidget {
   const InvoiceEntryScreen({super.key});
@@ -23,78 +22,35 @@ class _InvoiceEntryScreenState extends State<InvoiceEntryScreen> {
   bool _huboError = false;
   File? _imagenSeleccionada;
 
-  final MobileScannerController _scannerController = MobileScannerController();
+  final ms.MobileScannerController _scannerController = ms.MobileScannerController();
 
-  Future<void> _seleccionarImagen() async {
-    final pickedFile = await ImagePicker().pickImage(
-      source: ImageSource.gallery,
-    );
-
-    if (pickedFile != null) {
-      setState(() {
-        _imagenSeleccionada = File(pickedFile.path);
-      });
-
-      // Mostrar imagen en un diálogo flotante
-      showDialog(
-        context: context,
-        builder:
-            (context) => AlertDialog(
-              backgroundColor: Colors.black,
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Image.file(File(pickedFile.path)),
-                  const SizedBox(height: 10),
-                  ElevatedButton.icon(
-                    icon: const Icon(Icons.qr_code_scanner),
-                    label: const Text('Escanear código de la imagen'),
-                    onPressed: () {
-                      Navigator.of(context).pop(); // Cierra el modal
-                      _escanearDesdeArchivo(File(pickedFile.path));
-                    },
-                  ),
-                ],
-              ),
-            ),
-      );
-    }
-  }
-
-  Future<File> redimensionarImagen(File original) async {
+  Future<File> _redimensionarImagen(File original) async {
     final bytes = await original.readAsBytes();
-    final image = img.decodeImage(bytes);
-
+    final image = img.decodeImage(bytes);                            // usa img
     if (image == null) return original;
-
-    // Redimensionamos a un ancho razonable
     final resized = img.copyResize(image, width: 800);
     final resizedBytes = img.encodeJpg(resized);
-
     final path = original.path.replaceFirst('.jpg', '_resized.jpg');
     return File(path).writeAsBytes(resizedBytes);
   }
 
   Future<void> _escanearDesdeArchivo(File archivo) async {
-     Navigator.of(context).push(
-      MaterialPageRoute(
-        fullscreenDialog: true,
-        builder: (_) => const LoadingScreen(mensaje: 'Analizando imagen...'),
-      ),
-    );
-    final archivoRedimensionado = await redimensionarImagen(archivo);
+    final ctx = context;
+    Navigator.of(ctx).push(MaterialPageRoute(
+      fullscreenDialog: true,
+      builder: (_) => const LoadingScreen(mensaje: 'Analizando imagen...'),
+    ));
 
+    final archivoRedimensionado = await _redimensionarImagen(archivo);
     final inputImage = mlkit.InputImage.fromFile(archivoRedimensionado);
     final scanner = mlkit.BarcodeScanner(formats: [mlkit.BarcodeFormat.qrCode]);
+    final barcodes = await scanner.processImage(inputImage);
 
-    final List<mlkit.Barcode> barcodes = await scanner.processImage(inputImage);
+    Navigator.of(ctx).pop();
 
     if (barcodes.isEmpty || barcodes.first.rawValue == null) {
-      Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No se detectó ningún código en la imagen.'),
-        ),
+      ScaffoldMessenger.of(ctx).showSnackBar(
+        const SnackBar(content: Text('No se detectó ningún código en la imagen.')),
       );
       return;
     }
@@ -102,72 +58,88 @@ class _InvoiceEntryScreenState extends State<InvoiceEntryScreen> {
     final codigo = barcodes.first.rawValue!;
     final datos = analizarDatosDelCodigo(codigo);
 
-    Navigator.of(context).pop();
-    
     Navigator.pushReplacement(
-      context,
+      ctx,
       MaterialPageRoute(
-        builder:
-            (_) => FacturaFormScreen(
-              datos: datos,
-              contenidoOriginal: codigo,
-              imagenFactura: archivo,
-            ),
-      ),
-    );
-  }
-
-
-  void _navegarAlFormulario() {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder:
-            (context) => FacturaFormScreen(
-              datos: {}, // o datos escaneados si existen
-              contenidoOriginal: '', // texto QR si aplica
-              imagenFactura: _imagenSeleccionada,
-            ),
+        builder: (_) => FacturaFormScreen(
+          datos: datos,
+          contenidoOriginal: codigo,
+          imagenFactura: archivo,
+        ),
       ),
     );
   }
 
   void _onDetect(ms.BarcodeCapture capture) {
     if (_isScanned) return;
-
-    for (final ms.Barcode barcode in capture.barcodes) {
-      final String? value = barcode.rawValue;
+    for (final barcode in capture.barcodes) {
+      final value = barcode.rawValue;
       if (value != null && value.isNotEmpty) {
         setState(() {
           _isScanned = true;
           _scannedData = value;
         });
-
-        final datosExtraidos = analizarDatosDelCodigo(value);
-
-        if (datosExtraidos == null) {
+        final datos = analizarDatosDelCodigo(value);
+        if (datos == null) {
           setState(() => _huboError = true);
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('No se detectó información útil en el código.'),
-            ),
+            const SnackBar(content: Text('No se detectó información útil en el código.')),
           );
         }
-
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder:
-                (_) => FacturaFormScreen(
-                  datos: datosExtraidos,
-                  contenidoOriginal: value,
-                  imagenFactura: _imagenSeleccionada,
-                ),
+            builder: (_) => FacturaFormScreen(
+              datos: datos,
+              contenidoOriginal: value,
+              imagenFactura: _imagenSeleccionada,
+            ),
           ),
         );
         break;
       }
     }
+  }
+
+  Future<void> _escanearDesdeGaleria() async {
+    final ctx = context;
+    Navigator.of(ctx).push(MaterialPageRoute(
+      fullscreenDialog: true,
+      builder: (_) => const LoadingScreen(mensaje: 'Analizando imagen...'),
+    ));
+
+    final picker = ImagePicker();
+    final imagen = await picker.pickImage(source: ImageSource.gallery);
+    Navigator.of(ctx).pop();
+    if (imagen == null) return;
+
+    final file = File(imagen.path);
+    setState(() => _imagenSeleccionada = file);
+
+    final inputImage = mlkit.InputImage.fromFile(file);
+    final scanner = mlkit.BarcodeScanner(formats: [mlkit.BarcodeFormat.qrCode]);
+    final barcodes = await scanner.processImage(inputImage);
+
+    if (barcodes.isEmpty || barcodes.first.rawValue == null) {
+      ScaffoldMessenger.of(ctx).showSnackBar(
+        const SnackBar(content: Text('No se detectó ningún código en la imagen.')),
+      );
+      return;
+    }
+
+    final codigo = barcodes.first.rawValue!;
+    final datos = analizarDatosDelCodigo(codigo);
+
+    Navigator.pushReplacement(
+      ctx,
+      MaterialPageRoute(
+        builder: (_) => FacturaFormScreen(
+          datos: datos,
+          contenidoOriginal: codigo,
+          imagenFactura: file,
+        ),
+      ),
+    );
   }
 
   void _resetScan() {
@@ -177,56 +149,6 @@ class _InvoiceEntryScreenState extends State<InvoiceEntryScreen> {
       _huboError = false;
       _imagenSeleccionada = null;
     });
-  }
-
-  Future<void> _escanearDesdeGaleria() async {
-     Navigator.of(context).push(
-      MaterialPageRoute(
-        fullscreenDialog: true,
-        builder: (_) => const LoadingScreen(mensaje: 'Analizando imagen...'),
-      ),
-    );
-    final ImagePicker picker = ImagePicker();
-    final XFile? imagen = await picker.pickImage(source: ImageSource.gallery);
-
-    if (imagen != null) {
-      setState(() {
-        _imagenSeleccionada = File(imagen.path);
-      });
-
-      final inputImage = InputImage.fromFile(_imagenSeleccionada!);
-      final scanner = BarcodeScanner();
-      final List<mlkit.Barcode> barcodes = await scanner.processImage(
-        inputImage,
-      );
-
-      if (barcodes.isEmpty || barcodes.first.rawValue == null) {
-        Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('No se detectó ningún código en la imagen.'),
-          ),
-        );
-        return;
-      }
-
-      final codigo = barcodes.first.rawValue!;
-      final datos = analizarDatosDelCodigo(codigo);
-
-      Navigator.of(context).pop();
-
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder:
-              (_) => FacturaFormScreen(
-                datos: datos,
-                contenidoOriginal: codigo,
-                imagenFactura: _imagenSeleccionada,
-              ),
-        ),
-      );
-    }
   }
 
   @override
@@ -242,7 +164,7 @@ class _InvoiceEntryScreenState extends State<InvoiceEntryScreen> {
         children: [
           Expanded(
             flex: 3,
-            child: MobileScanner(
+            child: ms.MobileScanner(
               controller: _scannerController,
               onDetect: _onDetect,
             ),
@@ -262,7 +184,6 @@ class _InvoiceEntryScreenState extends State<InvoiceEntryScreen> {
                     style: const TextStyle(color: Colors.white70, fontSize: 16),
                   ),
                   const SizedBox(height: 10),
-
                   if (_imagenSeleccionada != null)
                     Padding(
                       padding: const EdgeInsets.only(top: 10),
@@ -275,31 +196,24 @@ class _InvoiceEntryScreenState extends State<InvoiceEntryScreen> {
                         ),
                       ),
                     ),
-
                   const SizedBox(height: 10),
-
                   if (_huboError)
                     ElevatedButton.icon(
                       onPressed: _resetScan,
                       icon: const Icon(Icons.restart_alt),
                       label: const Text('Volver a escanear'),
                     ),
-
                   OutlinedButton.icon(
                     onPressed: _escanearDesdeGaleria,
                     icon: const Icon(Icons.photo),
                     label: const Text('Seleccionar imagen desde galería'),
                   ),
                   const SizedBox(height: 10),
-
-                  // ➕ Botón para agregar factura manualmente
                   OutlinedButton.icon(
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
-                          builder: (_) => const FacturaFormScreen(),
-                        ),
+                        MaterialPageRoute(builder: (_) => const FacturaFormScreen()),
                       );
                     },
                     icon: const Icon(Icons.edit_document),
@@ -307,10 +221,7 @@ class _InvoiceEntryScreenState extends State<InvoiceEntryScreen> {
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.white,
                       side: const BorderSide(color: Colors.white70),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 30,
-                        vertical: 15,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
                     ),
                   ),
                 ],
@@ -324,22 +235,14 @@ class _InvoiceEntryScreenState extends State<InvoiceEntryScreen> {
 }
 
 Map<String, dynamic>? analizarDatosDelCodigo(String texto) {
-  final Map<String, dynamic> datos = {};
-
+  final datos = <String, String>{};
   final regex = RegExp(r'(\w+)=([^\n\r]+)');
-  final matches = regex.allMatches(texto);
-
-  for (final match in matches) {
+  for (final match in regex.allMatches(texto)) {
     final key = match.group(1)?.trim();
     final value = match.group(2)?.trim();
-
-    if (key != null && value != null) {
-      datos[key] = value;
-    }
+    if (key != null && value != null) datos[key] = value;
   }
-
   if (datos.isEmpty) return null;
-
   return {
     'fecha': datos['FecFac'],
     'numeroFactura': datos['NumFac'],
@@ -347,6 +250,6 @@ Map<String, dynamic>? analizarDatosDelCodigo(String texto) {
     'subtotal': datos['ValFac'],
     'iva': datos['ValIva'],
     'total': datos['ValTolFac'],
-    'urlConsultaDian': datos['QRCode'], // 🔹 Aquí lo guardamos
+    'urlConsultaDian': datos['QRCode'],
   };
 }
