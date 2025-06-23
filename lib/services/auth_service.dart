@@ -26,7 +26,6 @@ class AuthService {
       if (user != null) {
         final docRef = _db.collection('usuarios').doc(user.uid);
 
-        // Guarda si es nuevo (si no existía)
         final docSnapshot = await docRef.get();
         if (!docSnapshot.exists) {
           await docRef.set({

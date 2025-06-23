@@ -15,7 +15,6 @@ class Invoice {
     required this.descripcion,
   });
 
-  // Para guardar como JSON o enviar a Firestore
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -26,7 +25,6 @@ class Invoice {
     };
   }
 
-  // Desde Firestore (asumiendo que se usa Timestamp)
   factory Invoice.fromFirestore(String id, Map<String, dynamic> json) {
     return Invoice(
       id: id,
@@ -40,7 +38,6 @@ class Invoice {
     );
   }
 
-  // Desde JSON (para SharedPreferences si lo usas también)
   factory Invoice.fromJson(Map<String, dynamic> json) {
     return Invoice(
       id: json['id'],

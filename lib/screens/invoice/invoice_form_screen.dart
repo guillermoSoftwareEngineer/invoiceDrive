@@ -32,6 +32,8 @@ class _FacturaFormScreenState extends State<FacturaFormScreen> {
   late TextEditingController subtotalController;
   late TextEditingController ivaController;
   late TextEditingController totalController;
+  late TextEditingController razonSocialController;
+  late TextEditingController descripcionController;
   bool mostrarNumeroFactura = false;
   List<String> categorias = [];
   String? categoriaSeleccionada;
@@ -39,7 +41,7 @@ class _FacturaFormScreenState extends State<FacturaFormScreen> {
   File? _imagenFactura;
 
   Future<void> cargarCategorias() async {
-    await Future.delayed(Duration.zero); // asegura que el widget esté montado
+    await Future.delayed(Duration.zero);
     final user = FirebaseAuth.instance.currentUser;
 
     if (user == null) return;
@@ -66,6 +68,12 @@ class _FacturaFormScreenState extends State<FacturaFormScreen> {
     mostrarNumeroFactura =
         datos.containsKey('numeroFactura') || datos.containsKey('NumFac');
 
+    razonSocialController = TextEditingController(
+      text: datos['razonSocial'] ?? '',
+    );
+    descripcionController = TextEditingController(
+      text: datos['descripcion'] ?? '',
+    );
     fechaController = TextEditingController(
       text: datos['fecha'] ?? datos['FecFac'] ?? '',
     );
@@ -133,28 +141,36 @@ class _FacturaFormScreenState extends State<FacturaFormScreen> {
         return;
       }
 
+      final DateTime? fechaFactura =
+          fechaController.text.trim().isNotEmpty
+              ? DateFormat('yyyy-MM-dd').parse(fechaController.text.trim())
+              : null;
+
       final datos = {
-        'fecha': fechaController.text.trim(),
+        'fecha': fechaFactura,
         'nit': nitController.text.trim(),
         'subtotal': subtotalController.text.trim(),
         'iva': ivaController.text.trim(),
         'total': totalController.text.trim(),
         'fechaRegistro': FieldValue.serverTimestamp(),
         'categoria': categoriaSeleccionada ?? 'Sin categoría',
+        'razonSocial': razonSocialController.text.trim(),
       };
 
-      // Agrega número si existe
       final numero = numeroController.text.trim();
       if (numero.isNotEmpty) {
         datos['numeroFactura'] = numero;
       }
 
-      // Agrega el enlace de la DIAN si existe
+      final descripcion = descripcionController.text.trim();
+      if (descripcion.isNotEmpty) {
+        datos['descripcion'] = descripcion;
+      }
+
       if (widget.datos?['urlConsultaDian'] != null) {
         datos['urlConsultaDian'] = widget.datos!['urlConsultaDian'];
       }
 
-      // Subir imagen si existe
       if (_imagenFactura != null) {
         final url = await subirImagen(_imagenFactura!);
         if (url != null) {
@@ -185,6 +201,12 @@ class _FacturaFormScreenState extends State<FacturaFormScreen> {
           SnackBar(content: Text('Error al guardar la factura: $e')),
         );
       }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Por favor completa todos los campos obligatorios.'),
+        ),
+      );
     }
   }
 
@@ -227,7 +249,11 @@ class _FacturaFormScreenState extends State<FacturaFormScreen> {
                         .collection('usuarios')
                         .doc(uid)
                         .collection('categorias')
-                        .add({'nombre': nombre});
+                        .add({
+                          'razonSocial': razonSocialController.text.trim(),
+                          'descripcion': descripcionController.text.trim(),
+                          'nombre': nombre,
+                        });
 
                     Navigator.pop(context);
                     await cargarCategorias();
@@ -268,14 +294,12 @@ class _FacturaFormScreenState extends State<FacturaFormScreen> {
                   suffixIcon: Icon(Icons.calendar_today),
                 ),
                 onTap: () async {
-                  FocusScope.of(
-                    context,
-                  ).requestFocus(FocusNode()); // Quitar teclado
+                  FocusScope.of(context).requestFocus(FocusNode());
                   final DateTime? fechaSeleccionada = await showDatePicker(
                     context: context,
                     initialDate: DateTime.now(),
                     firstDate: DateTime(2000),
-                    lastDate: DateTime.now(), // ← no permite fechas futuras
+                    lastDate: DateTime.now(),
                     locale: const Locale('es', 'CO'),
                     helpText: 'Selecciona la fecha de la factura',
                   );
@@ -296,6 +320,23 @@ class _FacturaFormScreenState extends State<FacturaFormScreen> {
                         value == null || value.trim().isEmpty
                             ? 'Campo obligatorio'
                             : null,
+              ),
+              TextFormField(
+                controller: razonSocialController,
+                decoration: const InputDecoration(
+                  labelText: 'Nombre o razón social *',
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Este campo es obligatorio';
+                  }
+                  return null;
+                },
+              ),
+              TextFormField(
+                controller: descripcionController,
+                decoration: const InputDecoration(labelText: 'Descripción'),
+                maxLines: 2,
               ),
               DropdownButtonFormField<String>(
                 decoration: const InputDecoration(labelText: 'Categoría *'),

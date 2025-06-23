@@ -1,4 +1,3 @@
-// lib/login_screen.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -10,7 +9,7 @@ class LoginScreen extends StatelessWidget {
 
   Future<void> signInWithGoogle(BuildContext context) async {
     final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
-    if (googleUser == null) return; // Cancelado
+    if (googleUser == null) return;
 
     final GoogleSignInAuthentication googleAuth =
         await googleUser.authentication;
@@ -24,7 +23,6 @@ class LoginScreen extends StatelessWidget {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('isLoggedIn', true);
 
-    // Navega a Home
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (_) => const HomeScreen()),

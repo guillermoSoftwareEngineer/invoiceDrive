@@ -4,7 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:image/image.dart' as img;
 import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-import 'factura_form_screen.dart';
+import 'invoice_form_screen.dart';
 import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart'
     as mlkit;
 import 'package:mobile_scanner/mobile_scanner.dart' as ms;
@@ -35,7 +35,6 @@ class _InvoiceEntryScreenState extends State<InvoiceEntryScreen> {
         _imagenSeleccionada = File(pickedFile.path);
       });
 
-      // Mostrar imagen en un diálogo flotante
       showDialog(
         context: context,
         builder:
@@ -50,7 +49,7 @@ class _InvoiceEntryScreenState extends State<InvoiceEntryScreen> {
                     icon: const Icon(Icons.qr_code_scanner),
                     label: const Text('Escanear código de la imagen'),
                     onPressed: () {
-                      Navigator.of(context).pop(); // Cierra el modal
+                      Navigator.of(context).pop();
                       _escanearDesdeArchivo(File(pickedFile.path));
                     },
                   ),
@@ -67,7 +66,6 @@ class _InvoiceEntryScreenState extends State<InvoiceEntryScreen> {
 
     if (image == null) return original;
 
-    // Redimensionamos a un ancho razonable
     final resized = img.copyResize(image, width: 800);
     final resizedBytes = img.encodeJpg(resized);
 
@@ -124,8 +122,8 @@ class _InvoiceEntryScreenState extends State<InvoiceEntryScreen> {
       MaterialPageRoute(
         builder:
             (context) => FacturaFormScreen(
-              datos: {}, // o datos escaneados si existen
-              contenidoOriginal: '', // texto QR si aplica
+              datos: {},
+              contenidoOriginal: '',
               imagenFactura: _imagenSeleccionada,
             ),
       ),
@@ -292,7 +290,6 @@ class _InvoiceEntryScreenState extends State<InvoiceEntryScreen> {
                   ),
                   const SizedBox(height: 10),
 
-                  // ➕ Botón para agregar factura manualmente
                   OutlinedButton.icon(
                     onPressed: () {
                       Navigator.push(
@@ -347,6 +344,6 @@ Map<String, dynamic>? analizarDatosDelCodigo(String texto) {
     'subtotal': datos['ValFac'],
     'iva': datos['ValIva'],
     'total': datos['ValTolFac'],
-    'urlConsultaDian': datos['QRCode'], // 🔹 Aquí lo guardamos
+    'urlConsultaDian': datos['QRCode'],
   };
 }
