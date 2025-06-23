@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
+import 'package:invoice_d/screens/auth/login_email_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../invoice/invoice_form_screen.dart';
 import '../../models/invoice.dart';
@@ -26,6 +27,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   DateTime? fechaInicio;
   DateTime? fechaFin;
+  bool filtroPorFechaActivo = false;
 
   List<Map<String, dynamic>> flatInvoices = [];
   Map<String, List<Map<String, dynamic>>> groupedInvoices = {};
@@ -68,9 +70,7 @@ class _HomeScreenState extends State<HomeScreen> {
       facturas.sort((a, b) {
         final aTotal = double.tryParse(a['total'].toString()) ?? 0.0;
         final bTotal = double.tryParse(b['total'].toString()) ?? 0.0;
-        return ascending
-            ? aTotal.compareTo(bTotal)
-            : bTotal.compareTo(aTotal);
+        return ascending ? aTotal.compareTo(bTotal) : bTotal.compareTo(aTotal);
       });
       setState(() {
         flatInvoices = facturas;
@@ -78,9 +78,8 @@ class _HomeScreenState extends State<HomeScreen> {
         monthlyTotal = _calcularTotalDelMes(facturas);
       });
     } else {
-      final snapshot = await query
-          .orderBy(currentSortField, descending: !ascending)
-          .get();
+      final snapshot =
+          await query.orderBy(currentSortField, descending: !ascending).get();
       final tempGrouped = <String, List<Map<String, dynamic>>>{};
       final tempFlat = <Map<String, dynamic>>[];
       double tempTotal = 0;
@@ -88,19 +87,16 @@ class _HomeScreenState extends State<HomeScreen> {
 
       for (var doc in snapshot.docs) {
         final data = doc.data();
-        final fechaRegistro =
-            (data['fechaRegistro'] as Timestamp).toDate();
+        final fechaRegistro = (data['fechaRegistro'] as Timestamp).toDate();
         if (groupByDate) {
-          final key =
-              DateFormat('yyyy-MM-dd').format(fechaRegistro);
+          final key = DateFormat('yyyy-MM-dd').format(fechaRegistro);
           tempGrouped.putIfAbsent(key, () => []).add(data);
         } else {
           tempFlat.add(data);
         }
         if (fechaRegistro.month == now.month &&
             fechaRegistro.year == now.year) {
-          tempTotal +=
-              double.tryParse(data['total'].toString()) ?? 0.0;
+          tempTotal += double.tryParse(data['total'].toString()) ?? 0.0;
         }
       }
 
@@ -142,24 +138,23 @@ class _HomeScreenState extends State<HomeScreen> {
             )
             .get();
 
-    final formato = DateFormat('yyyy-MM-dd');
+    if (snapshot.docs.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No se encontraron facturas en el rango de fechas.'),
+          duration: Duration(seconds: 3),
+        ),
+      );
+    }
 
     final List<Map<String, dynamic>> filtradas =
-        snapshot.docs.map((doc) => doc.data()).where((factura) {
-          try {
-            final fecha = formato.parse(factura['fecha']);
-            return fecha.isAfter(
-                  fechaInicio!.subtract(const Duration(days: 1)),
-                ) &&
-                fecha.isBefore(fechaFin!.add(const Duration(days: 1)));
-          } catch (_) {
-            return false;
-          }
-        }).toList();
+        snapshot.docs.map((doc) => doc.data()).toList();
 
     setState(() {
       flatInvoices = filtradas;
       groupedInvoices = {};
+      groupByDate = false;
+      filtroPorFechaActivo = true;
       monthlyTotal = _calcularTotalDelMes(filtradas);
     });
   }
@@ -176,10 +171,8 @@ class _HomeScreenState extends State<HomeScreen> {
     final now = DateTime.now();
     double total = 0;
     for (var f in facturas) {
-      final fecha = DateTime.tryParse(f['fecha'] ?? '');
-      if (fecha != null &&
-          fecha.month == now.month &&
-          fecha.year == now.year) {
+      final fecha = (f['fecha'] as Timestamp).toDate();
+      if (fecha.month == now.month && fecha.year == now.year) {
         total += double.tryParse(f['total'].toString()) ?? 0.0;
       }
     }
@@ -189,36 +182,37 @@ class _HomeScreenState extends State<HomeScreen> {
   void _confirmSignOut() {
     showDialog(
       context: context,
-      builder: (dialogCtx) => AlertDialog(
-        title: const Text('¿Cerrar sesión?'),
-        content: const Text(
-            '¿Estás seguro de que deseas cerrar tu sesión actual?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogCtx).pop(),
-            child: const Text('Cancelar'),
+      builder:
+          (dialogCtx) => AlertDialog(
+            title: const Text('¿Cerrar sesión?'),
+            content: const Text(
+              '¿Estás seguro de que deseas cerrar tu sesión actual?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogCtx).pop(),
+                child: const Text('Cancelar'),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  Navigator.of(dialogCtx).pop();
+                  await FirebaseAuth.instance.signOut();
+                  if (!mounted) return;
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (_) => const LoginEmailScreen()),
+                    (route) => false,
+                  );
+                },
+                child: const Text('Sí, cerrar'),
+              ),
+            ],
           ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.of(dialogCtx).pop();
-              await FirebaseAuth.instance.signOut();
-              if (!mounted) return;
-              Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (_) => const MyApp()),
-                (route) => false,
-              );
-            },
-            child: const Text('Sí, cerrar'),
-          ),
-        ],
-      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final nombreMes =
-        DateFormat.MMMM('es_CO').format(DateTime.now());
+    final nombreMes = DateFormat.MMMM('es_CO').format(DateTime.now());
     return Scaffold(
       backgroundColor: const Color(0xFF070707),
       appBar: AppBar(
@@ -227,20 +221,17 @@ class _HomeScreenState extends State<HomeScreen> {
         toolbarHeight: 90,
         title: const Text(
           'Inicio',
-          style:
-              TextStyle(color: Colors.white, fontFamily: 'Poppins'),
+          style: TextStyle(color: Colors.white, fontFamily: 'Poppins'),
         ),
         actions: [
           IconButton(
             onPressed: _confirmSignOut,
-            icon:
-                const Icon(Icons.logout, color: Colors.white),
+            icon: const Icon(Icons.logout, color: Colors.white),
           ),
         ],
       ),
       body: Padding(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 20.0),
+        padding: const EdgeInsets.symmetric(horizontal: 20.0),
         child: ListView(
           children: [
             const SizedBox(height: 20),
@@ -252,8 +243,7 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Padding(
                 padding: const EdgeInsets.all(20),
                 child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       'Gastos del mes de '
@@ -266,8 +256,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(height: 10),
                     Text(
-                      currencyFormatter
-                          .format(monthlyTotal),
+                      currencyFormatter.format(monthlyTotal),
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 32,
@@ -284,9 +273,7 @@ class _HomeScreenState extends State<HomeScreen> {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                      builder: (_) =>
-                          const InvoiceEntryScreen()),
+                  MaterialPageRoute(builder: (_) => const InvoiceEntryScreen()),
                 );
               },
               child: const Text('Agregar Factura'),
@@ -303,23 +290,10 @@ class _HomeScreenState extends State<HomeScreen> {
               },
               child: const Text('Ver estadísticas'),
             ),
-            const SizedBox(height: 10),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (_) =>
-                          const InvoiceSummaryCharts()),
-                );
-              },
-              child: const Text('Ver estadísticas'),
-            ),
             const SizedBox(height: 20),
 
             Row(
-              mainAxisAlignment:
-                  MainAxisAlignment.spaceBetween,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text(
                   'Facturas',
@@ -335,30 +309,29 @@ class _HomeScreenState extends State<HomeScreen> {
                     color: Colors.white,
                     size: 28,
                   ),
-                  onSelected: (v) =>
-                      _applyFilter(v),
-                  itemBuilder: (_) => const [
-                    PopupMenuItem(
-                        value: 'fechaRegistro',
-                        child:
-                            Text('Fecha de generación')),
-                    PopupMenuItem(
-                        value: 'fecha',
-                        child:
-                            Text('Fecha de la factura')),
-                    PopupMenuItem(
-                        value: 'total',
-                        child: Text(
-                            'Valor de la factura')),
-                    PopupMenuDivider(),
-                    PopupMenuItem(
-                        value: 'asc',
-                        child: Text('Ascendente')),
-                    PopupMenuItem(
-                        value: 'desc',
-                        child:
-                            Text('Descendente')),
-                  ],
+                  onSelected: (v) => _applyFilter(v),
+                  itemBuilder:
+                      (_) => [
+                        if (!filtroPorFechaActivo)
+                          PopupMenuItem(
+                            value: 'fechaRegistro',
+                            child: Text('Fecha de generación'),
+                          ),
+                        PopupMenuItem(
+                          value: 'fecha',
+                          child: Text('Fecha de la factura'),
+                        ),
+                        PopupMenuItem(
+                          value: 'total',
+                          child: Text('Valor de la factura'),
+                        ),
+                        PopupMenuDivider(),
+                        PopupMenuItem(value: 'asc', child: Text('Ascendente')),
+                        PopupMenuItem(
+                          value: 'desc',
+                          child: Text('Descendente'),
+                        ),
+                      ],
                 ),
                 IconButton(
                   icon: const Icon(
@@ -411,6 +384,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       setState(() {
                         fechaInicio = null;
                         fechaFin = null;
+                        filtroPorFechaActivo = false;
                       });
                       fetchInvoices(); // vuelve a traer todas las facturas
                     },
@@ -475,12 +449,12 @@ class _HomeScreenState extends State<HomeScreen> {
         ascending = false;
       } else {
         currentSortField = value;
-        groupByDate = (value != 'fecha' &&
-            value != 'total');
+        groupByDate = (value != 'fecha' && value != 'total');
       }
     });
     fetchInvoices();
   }
+}
 
 Widget _buildInvoiceCard(BuildContext context, Map<String, dynamic> factura) {
   final currencyFormatter = NumberFormat.currency(

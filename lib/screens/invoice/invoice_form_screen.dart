@@ -189,7 +189,7 @@ class _FacturaFormScreenState extends State<FacturaFormScreen> {
       }
 
       if (_imagenFactura != null) {
-        final url = await subirImagen(_imagenFactura!);
+        final url = await _subirImagen(_imagenFactura!);
         if (url != null) {
           datos['urlImagen'] = url;
         }
@@ -217,12 +217,6 @@ class _FacturaFormScreenState extends State<FacturaFormScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(ctx).showSnackBar(
         SnackBar(content: Text('Error al guardar la factura: $e')),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Por favor completa todos los campos obligatorios.'),
-        ),
       );
     }
   }
@@ -317,7 +311,6 @@ class _FacturaFormScreenState extends State<FacturaFormScreen> {
                     context: context,
                     initialDate: DateTime.now(),
                     firstDate: DateTime(2000),
-                    lastDate: DateTime.now(),
                     lastDate: DateTime.now(),
                     locale: const Locale('es', 'CO'),
                     helpText: 'Selecciona la fecha de la factura',

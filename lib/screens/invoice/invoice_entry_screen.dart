@@ -11,7 +11,8 @@ import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart
     as mlkit;
 import 'package:mobile_scanner/mobile_scanner.dart' as ms;
 import 'package:invoice_d/screens/widgets/loading_screen.dart';
-import 'factura_form_screen.dart';
+import 'invoice_form_screen.dart';
+import 'invoice_form_screen.dart';
 
 class InvoiceEntryScreen extends StatefulWidget {
   const InvoiceEntryScreen({super.key});
@@ -81,7 +82,7 @@ class _InvoiceEntryScreenState extends State<InvoiceEntryScreen> {
       builder: (_) => const LoadingScreen(mensaje: 'Analizando imagen...'),
     ));
 
-    final archivoRedimensionado = await _redimensionarImagen(archivo);
+    final archivoRedimensionado = await redimensionarImagen(archivo);
     final inputImage = mlkit.InputImage.fromFile(archivoRedimensionado);
     final scanner = mlkit.BarcodeScanner(formats: [mlkit.BarcodeFormat.qrCode]);
     final barcodes = await scanner.processImage(inputImage);
