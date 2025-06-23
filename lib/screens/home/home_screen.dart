@@ -269,29 +269,38 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             const SizedBox(height: 30),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const InvoiceEntryScreen()),
-                );
-              },
-              child: const Text('Agregar Factura'),
-            ),
-            const SizedBox(height: 10),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const InvoiceSummaryCharts(),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const InvoiceEntryScreen(),
+                        ),
+                      );
+                    },
+                    child: Icon(Icons.add),
                   ),
-                );
-              },
-              child: const Text('Ver estadísticas'),
+                ),
+                SizedBox(width: 10),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const InvoiceSummaryCharts(),
+                        ),
+                      );
+                    },
+                    child: Icon(Icons.bar_chart),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 20),
-
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -452,7 +461,34 @@ class _HomeScreenState extends State<HomeScreen> {
         groupByDate = (value != 'fecha' && value != 'total');
       }
     });
-    fetchInvoices();
+
+    if (filtroPorFechaActivo) {
+      _ordenarFacturasLocalmente();
+    } else {
+      fetchInvoices();
+    }
+  }
+
+  void _ordenarFacturasLocalmente() {
+    setState(() {
+      flatInvoices.sort((a, b) {
+        if (currentSortField == 'fecha' ||
+            currentSortField == 'fechaRegistro') {
+          final aFecha = (a[currentSortField] as Timestamp).toDate();
+          final bFecha = (b[currentSortField] as Timestamp).toDate();
+          return ascending
+              ? aFecha.compareTo(bFecha)
+              : bFecha.compareTo(aFecha);
+        } else if (currentSortField == 'total') {
+          final aTotal = double.tryParse(a['total'].toString()) ?? 0.0;
+          final bTotal = double.tryParse(b['total'].toString()) ?? 0.0;
+          return ascending
+              ? aTotal.compareTo(bTotal)
+              : bTotal.compareTo(aTotal);
+        }
+        return 0;
+      });
+    });
   }
 }
 

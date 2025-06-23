@@ -34,18 +34,20 @@ class InvoiceDetailScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Detalle de Factura'),
-        titleTextStyle: const TextStyle(
-          color: Color(0xFF6552FE),
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
-        ),
+        backgroundColor: const Color(0xFF070707),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: ListView(
           children: [
             buildField('Número de Factura', factura['numeroFactura']),
-            buildField('Fecha', DateFormat('dd MMMM yyyy', 'es_CO').format((factura['fecha'] as Timestamp).toDate())),
+            buildField(
+              'Fecha',
+              DateFormat(
+                'dd MMMM yyyy',
+                'es_CO',
+              ).format((factura['fecha'] as Timestamp).toDate()),
+            ),
             buildField('Razón Social', factura['nombreProveedor']),
             buildField('NIT', factura['nit']),
             buildField('Categoría', factura['categoria']),
@@ -53,7 +55,7 @@ class InvoiceDetailScreen extends StatelessWidget {
             buildField('IVA', factura['iva'], isCurrency: true),
             buildField('Total', factura['total'], isCurrency: true),
             buildField('Descripción', factura['descripcion']),
-
+            
             if (factura['urlConsultaDian'] != null &&
                 factura['urlConsultaDian'].toString().isNotEmpty)
               Padding(
@@ -65,26 +67,24 @@ class InvoiceDetailScreen extends StatelessWidget {
                   ),
                   icon: const Icon(Icons.open_in_browser),
                   label: const Text('Consultar en la DIAN'),
-                  onPressed: () async {
-                    final url = factura['urlConsultaDian'];
-                    final uri = Uri.parse(url);
-                    if (await canLaunchUrl(uri)) {
-                      await launchUrl(uri, mode: LaunchMode.platformDefault);
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'No se pudo abrir el enlace de la DIAN',
-                          ),
-                        ),
-                      );
-                    }
-                  },
+                  onPressed: () {
+                        _openUrlExternally(factura['urlConsultaDian']);
+                      }
                 ),
               ),
           ],
         ),
       ),
     );
+  }
+}
+
+Future<void> _openUrlExternally(String url) async {
+  final Uri uri = Uri.parse(url);
+  if (!await launchUrl(
+    uri,
+    mode: LaunchMode.platformDefault,
+  )) {
+    debugPrint('No se pudo abrir la URL: $url');
   }
 }
