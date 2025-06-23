@@ -4,7 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:intl/intl.dart';
-import 'home_screen.dart';
+import '../home/home_screen.dart';
+import 'package:invoice_d/screens/widgets/loading_screen.dart';
 
 class FacturaFormScreen extends StatefulWidget {
   final Map<String, dynamic>? datos;
@@ -117,8 +118,15 @@ class _FacturaFormScreenState extends State<FacturaFormScreen> {
 
   Future<void> guardarFactura() async {
     if (_formKey.currentState!.validate()) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          fullscreenDialog: true,
+          builder: (_) => const LoadingScreen(mensaje: 'Guardando factura...'),
+        ),
+      );
       final uid = FirebaseAuth.instance.currentUser?.uid;
       if (uid == null) {
+        Navigator.of(context).pop();
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('No hay sesión activa')));
@@ -141,7 +149,7 @@ class _FacturaFormScreenState extends State<FacturaFormScreen> {
         datos['numeroFactura'] = numero;
       }
 
-      // 🔹 Agrega el enlace de la DIAN si existe
+      // Agrega el enlace de la DIAN si existe
       if (widget.datos?['urlConsultaDian'] != null) {
         datos['urlConsultaDian'] = widget.datos!['urlConsultaDian'];
       }
@@ -161,6 +169,8 @@ class _FacturaFormScreenState extends State<FacturaFormScreen> {
             .collection('facturas')
             .add(datos);
 
+        Navigator.of(context).pop();
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Factura guardada correctamente')),
         );
@@ -170,6 +180,7 @@ class _FacturaFormScreenState extends State<FacturaFormScreen> {
           (route) => false,
         );
       } catch (e) {
+        Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error al guardar la factura: $e')),
         );

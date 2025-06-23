@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:invoice_d/home_screen.dart';
+import 'package:invoice_d/screens/home/home_screen.dart';
+import 'package:invoice_d/screens/widgets/loading_screen.dart';
 
 class LoginEmailScreen extends StatefulWidget {
   const LoginEmailScreen({super.key});
@@ -19,7 +20,12 @@ class _LoginEmailScreenState extends State<LoginEmailScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _cargando = true);
-
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => const LoadingScreen(mensaje: 'Iniciando sesión...'),
+      ),
+    );
     try {
       await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: correoController.text.trim(),
@@ -27,6 +33,8 @@ class _LoginEmailScreenState extends State<LoginEmailScreen> {
       );
 
       final usuario = FirebaseAuth.instance.currentUser;
+
+      Navigator.of(context).pop();
 
       if (usuario != null) {
         Navigator.pushReplacement(
@@ -52,7 +60,7 @@ class _LoginEmailScreenState extends State<LoginEmailScreen> {
         default:
           mensaje = 'Error: ${e.message}';
       }
-
+      Navigator.of(context).pop();
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(mensaje)));

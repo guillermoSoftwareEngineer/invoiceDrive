@@ -8,6 +8,7 @@ import 'factura_form_screen.dart';
 import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart'
     as mlkit;
 import 'package:mobile_scanner/mobile_scanner.dart' as ms;
+import 'package:invoice_d/screens/widgets/loading_screen.dart';
 
 class InvoiceEntryScreen extends StatefulWidget {
   const InvoiceEntryScreen({super.key});
@@ -75,6 +76,12 @@ class _InvoiceEntryScreenState extends State<InvoiceEntryScreen> {
   }
 
   Future<void> _escanearDesdeArchivo(File archivo) async {
+     Navigator.of(context).push(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => const LoadingScreen(mensaje: 'Analizando imagen...'),
+      ),
+    );
     final archivoRedimensionado = await redimensionarImagen(archivo);
 
     final inputImage = mlkit.InputImage.fromFile(archivoRedimensionado);
@@ -83,6 +90,7 @@ class _InvoiceEntryScreenState extends State<InvoiceEntryScreen> {
     final List<mlkit.Barcode> barcodes = await scanner.processImage(inputImage);
 
     if (barcodes.isEmpty || barcodes.first.rawValue == null) {
+      Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('No se detectó ningún código en la imagen.'),
@@ -94,6 +102,8 @@ class _InvoiceEntryScreenState extends State<InvoiceEntryScreen> {
     final codigo = barcodes.first.rawValue!;
     final datos = analizarDatosDelCodigo(codigo);
 
+    Navigator.of(context).pop();
+    
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
@@ -170,6 +180,12 @@ class _InvoiceEntryScreenState extends State<InvoiceEntryScreen> {
   }
 
   Future<void> _escanearDesdeGaleria() async {
+     Navigator.of(context).push(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => const LoadingScreen(mensaje: 'Analizando imagen...'),
+      ),
+    );
     final ImagePicker picker = ImagePicker();
     final XFile? imagen = await picker.pickImage(source: ImageSource.gallery);
 
@@ -185,6 +201,7 @@ class _InvoiceEntryScreenState extends State<InvoiceEntryScreen> {
       );
 
       if (barcodes.isEmpty || barcodes.first.rawValue == null) {
+        Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('No se detectó ningún código en la imagen.'),
@@ -195,6 +212,8 @@ class _InvoiceEntryScreenState extends State<InvoiceEntryScreen> {
 
       final codigo = barcodes.first.rawValue!;
       final datos = analizarDatosDelCodigo(codigo);
+
+      Navigator.of(context).pop();
 
       Navigator.pushReplacement(
         context,
