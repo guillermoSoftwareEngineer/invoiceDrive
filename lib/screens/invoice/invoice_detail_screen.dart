@@ -53,7 +53,7 @@ class InvoiceDetailScreen extends StatelessWidget {
             buildField('Categoría', factura['categoria']),
             buildField('Subtotal', factura['subtotal'], isCurrency: true),
             buildField('IVA', factura['iva'], isCurrency: true),
-            buildField('Total', factura['total'], isCurrency: true),
+            buildField('Otros Impuestos', factura['valorOtrosImpuestos'], isCurrency: true),
             buildField('Descripción', factura['descripcion']),
             
             if (factura['urlConsultaDian'] != null &&

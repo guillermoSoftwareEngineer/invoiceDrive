@@ -34,6 +34,8 @@ class _FacturaFormScreenState extends State<FacturaFormScreen> {
   late TextEditingController totalController;
   late TextEditingController razonSocialController;
   late TextEditingController descripcionController;
+  late TextEditingController otrosImpuestosController;
+
   bool mostrarNumeroFactura = false;
   List<String> categorias = [];
   String? categoriaSeleccionada;
@@ -90,6 +92,10 @@ class _FacturaFormScreenState extends State<FacturaFormScreen> {
     totalController = TextEditingController(
       text: datos['total'] ?? datos['ValTolFac'] ?? '',
     );
+    otrosImpuestosController = TextEditingController(
+      text: datos['ValOtrIm'] ?? '',
+    );
+
 
     subtotalController.addListener(_calcularTotal);
     ivaController.addListener(_calcularTotal);
@@ -117,11 +123,16 @@ class _FacturaFormScreenState extends State<FacturaFormScreen> {
   }
 
   void _calcularTotal() {
-    final subtotal = double.tryParse(subtotalController.text) ?? 0.0;
-    final iva = double.tryParse(ivaController.text) ?? 0.0;
-    final total = subtotal + iva;
-    totalController.text = total.toStringAsFixed(2);
+    setState(() {
+      double subtotal = double.tryParse(subtotalController.text) ?? 0;
+      double iva = double.tryParse(ivaController.text) ?? 0;
+      double otros = double.tryParse(otrosImpuestosController.text) ?? 0;
+
+      double total = subtotal + iva + otros;
+      totalController.text = total.toStringAsFixed(2);
+    });
   }
+
 
   Future<String?> _subirImagen(File imagen) async {
     try {
@@ -168,6 +179,7 @@ class _FacturaFormScreenState extends State<FacturaFormScreen> {
         'nit': nitController.text.trim(),
         'subtotal': subtotalController.text.trim(),
         'iva': ivaController.text.trim(),
+        'valorOtrosImpuestos': otrosImpuestosController.text,
         'total': totalController.text.trim(),
         'fechaRegistro': FieldValue.serverTimestamp(),
         'categoria': categoriaSeleccionada ?? 'Sin categoría',
@@ -374,6 +386,14 @@ class _FacturaFormScreenState extends State<FacturaFormScreen> {
                 controller: ivaController,
                 keyboardType: TextInputType.number,
                 decoration: const InputDecoration(labelText: 'IVA'),
+              ),
+              TextFormField(
+                controller: otrosImpuestosController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Valor otros impuestos',
+                ),
+                onChanged: (_) => _calcularTotal(),
               ),
               TextFormField(
                 controller: totalController,

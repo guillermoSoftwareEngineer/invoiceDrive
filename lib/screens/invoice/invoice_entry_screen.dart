@@ -66,7 +66,7 @@ class _InvoiceEntryScreenState extends State<InvoiceEntryScreen> {
 
   Future<File> redimensionarImagen(File original) async {
     final bytes = await original.readAsBytes();
-    final image = img.decodeImage(bytes);                            // usa img
+    final image = img.decodeImage(bytes); // usa img
     if (image == null) return original;
 
     final resized = img.copyResize(image, width: 800);
@@ -77,10 +77,12 @@ class _InvoiceEntryScreenState extends State<InvoiceEntryScreen> {
 
   Future<void> _escanearDesdeArchivo(File archivo) async {
     final ctx = context;
-    Navigator.of(ctx).push(MaterialPageRoute(
-      fullscreenDialog: true,
-      builder: (_) => const LoadingScreen(mensaje: 'Analizando imagen...'),
-    ));
+    Navigator.of(ctx).push(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => const LoadingScreen(mensaje: 'Analizando imagen...'),
+      ),
+    );
 
     final archivoRedimensionado = await redimensionarImagen(archivo);
     final inputImage = mlkit.InputImage.fromFile(archivoRedimensionado);
@@ -91,7 +93,9 @@ class _InvoiceEntryScreenState extends State<InvoiceEntryScreen> {
 
     if (barcodes.isEmpty || barcodes.first.rawValue == null) {
       ScaffoldMessenger.of(ctx).showSnackBar(
-        const SnackBar(content: Text('No se detectó ningún código en la imagen.')),
+        const SnackBar(
+          content: Text('No se detectó ningún código en la imagen.'),
+        ),
       );
       return;
     }
@@ -102,15 +106,15 @@ class _InvoiceEntryScreenState extends State<InvoiceEntryScreen> {
     Navigator.pushReplacement(
       ctx,
       MaterialPageRoute(
-        builder: (_) => FacturaFormScreen(
-          datos: datos,
-          contenidoOriginal: codigo,
-          imagenFactura: archivo,
-        ),
+        builder:
+            (_) => FacturaFormScreen(
+              datos: datos,
+              contenidoOriginal: codigo,
+              imagenFactura: archivo,
+            ),
       ),
     );
   }
-
 
   void _navegarAlFormulario() {
     Navigator.pushReplacement(
@@ -139,17 +143,20 @@ class _InvoiceEntryScreenState extends State<InvoiceEntryScreen> {
         if (datos == null) {
           setState(() => _huboError = true);
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('No se detectó información útil en el código.')),
+            const SnackBar(
+              content: Text('No se detectó información útil en el código.'),
+            ),
           );
         }
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (_) => FacturaFormScreen(
-              datos: datos,
-              contenidoOriginal: value,
-              imagenFactura: _imagenSeleccionada,
-            ),
+            builder:
+                (_) => FacturaFormScreen(
+                  datos: datos,
+                  contenidoOriginal: value,
+                  imagenFactura: _imagenSeleccionada,
+                ),
           ),
         );
         break;
@@ -159,10 +166,12 @@ class _InvoiceEntryScreenState extends State<InvoiceEntryScreen> {
 
   Future<void> _escanearDesdeGaleria() async {
     final ctx = context;
-    Navigator.of(ctx).push(MaterialPageRoute(
-      fullscreenDialog: true,
-      builder: (_) => const LoadingScreen(mensaje: 'Analizando imagen...'),
-    ));
+    Navigator.of(ctx).push(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => const LoadingScreen(mensaje: 'Analizando imagen...'),
+      ),
+    );
 
     final picker = ImagePicker();
     final imagen = await picker.pickImage(source: ImageSource.gallery);
@@ -178,7 +187,9 @@ class _InvoiceEntryScreenState extends State<InvoiceEntryScreen> {
 
     if (barcodes.isEmpty || barcodes.first.rawValue == null) {
       ScaffoldMessenger.of(ctx).showSnackBar(
-        const SnackBar(content: Text('No se detectó ningún código en la imagen.')),
+        const SnackBar(
+          content: Text('No se detectó ningún código en la imagen.'),
+        ),
       );
       return;
     }
@@ -189,11 +200,12 @@ class _InvoiceEntryScreenState extends State<InvoiceEntryScreen> {
     Navigator.pushReplacement(
       ctx,
       MaterialPageRoute(
-        builder: (_) => FacturaFormScreen(
-          datos: datos,
-          contenidoOriginal: codigo,
-          imagenFactura: file,
-        ),
+        builder:
+            (_) => FacturaFormScreen(
+              datos: datos,
+              contenidoOriginal: codigo,
+              imagenFactura: file,
+            ),
       ),
     );
   }
@@ -216,76 +228,89 @@ class _InvoiceEntryScreenState extends State<InvoiceEntryScreen> {
         backgroundColor: const Color(0xFF070707),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: Column(
-        children: [
-          Expanded(
-            flex: 3,
-            child: ms.MobileScanner(
-              controller: _scannerController,
-              onDetect: _onDetect,
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            SizedBox(
+              height:
+                  MediaQuery.of(context).size.height *
+                  0.45, // reemplazo de Expanded flex: 3
+              child: ms.MobileScanner(
+                controller: _scannerController,
+                onDetect: _onDetect,
+              ),
             ),
-          ),
-          Expanded(
-            flex: 2,
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              color: Colors.black,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    _scannedData.isNotEmpty
-                        ? 'Datos escaneados:\n$_scannedData'
-                        : 'Escanea un código o selecciona una imagen.',
-                    style: const TextStyle(color: Colors.white70, fontSize: 16),
-                  ),
-                  const SizedBox(height: 10),
-                  if (_imagenSeleccionada != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 10),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.file(
-                          _imagenSeleccionada!,
-                          height: 180,
-                          fit: BoxFit.contain,
+            SizedBox(
+              height:
+                  MediaQuery.of(context).size.height *
+                  0.55, // reemplazo de Expanded flex: 2
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                color: Colors.black,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      _scannedData.isNotEmpty
+                          ? 'Datos escaneados:\n$_scannedData'
+                          : 'Escanea un código o selecciona una imagen.',
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    if (_imagenSeleccionada != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 10),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.file(
+                            _imagenSeleccionada!,
+                            height: 180,
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                      ),
+                    const SizedBox(height: 10),
+                    if (_huboError)
+                      ElevatedButton.icon(
+                        onPressed: _resetScan,
+                        icon: const Icon(Icons.restart_alt),
+                        label: const Text('Volver a escanear'),
+                      ),
+                    OutlinedButton.icon(
+                      onPressed: _escanearDesdeGaleria,
+                      icon: const Icon(Icons.photo),
+                      label: const Text('Seleccionar imagen desde galería'),
+                    ),
+                    const SizedBox(height: 10),
+                    OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const FacturaFormScreen(),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.edit_document),
+                      label: const Text('Agregar factura manualmente'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        side: const BorderSide(color: Colors.white70),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 30,
+                          vertical: 15,
                         ),
                       ),
                     ),
-                  const SizedBox(height: 10),
-                  if (_huboError)
-                    ElevatedButton.icon(
-                      onPressed: _resetScan,
-                      icon: const Icon(Icons.restart_alt),
-                      label: const Text('Volver a escanear'),
-                    ),
-                  OutlinedButton.icon(
-                    onPressed: _escanearDesdeGaleria,
-                    icon: const Icon(Icons.photo),
-                    label: const Text('Seleccionar imagen desde galería'),
-                  ),
-                  const SizedBox(height: 10),
-
-                  OutlinedButton.icon(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const FacturaFormScreen()),
-                      );
-                    },
-                    icon: const Icon(Icons.edit_document),
-                    label: const Text('Agregar factura manualmente'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.white,
-                      side: const BorderSide(color: Colors.white70),
-                      padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -308,5 +333,6 @@ Map<String, dynamic>? analizarDatosDelCodigo(String texto) {
     'iva': datos['ValIva'],
     'total': datos['ValTolFac'],
     'urlConsultaDian': datos['QRCode'],
+    'ValOtrIm': datos['ValOtrIm'] ?? '0',
   };
 }
