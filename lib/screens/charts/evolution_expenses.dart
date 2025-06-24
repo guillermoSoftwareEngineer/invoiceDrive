@@ -75,6 +75,42 @@ class _EvolucionGastoScreenState extends State<EvolucionGastoScreen> {
     });
   }
 
+  Future<void> _seleccionarRangoDeFechas() async {
+    final rango = await showDateRangePicker(
+      context: context,
+      initialDateRange: DateTimeRange(
+        start: widget.fechaInicio,
+        end: widget.fechaFin,
+      ),
+      firstDate: DateTime(DateTime.now().year - 1),
+      lastDate: DateTime.now(),
+      locale: const Locale('es', 'ES'),
+    );
+
+    if (rango != null) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder:
+              (_) => EvolucionGastoScreen(
+                fechaInicio: rango.start,
+                fechaFin: rango.end,
+                uid: widget.uid,
+              ),
+        ),
+      );
+    }
+  }
+
+  double _determinarIntervaloEjeVertical() {
+    if (_valores.isEmpty) return 100;
+    final valorMaximo = _valores.reduce((a, b) => a > b ? a : b);
+    if (valorMaximo >= 10000) return 5000;
+    if (valorMaximo >= 5000) return 1000;
+    if (valorMaximo >= 1000) return 500;
+    return 100;
+  }
+
   @override
   Widget build(BuildContext context) {
     final formatoFecha = DateFormat('dd/MM/yyyy');
@@ -88,81 +124,64 @@ class _EvolucionGastoScreenState extends State<EvolucionGastoScreen> {
                 : Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Evolución del gasto',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${DateFormat('dd/MM/yyyy').format(widget.fechaInicio)} – ${DateFormat('dd/MM/yyyy').format(widget.fechaFin)}',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: Colors.white60,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        ChoiceChip(
-                          label: const Text('Diario'),
-                          selected: _modo == ModoEvolucion.diario,
-                          onSelected: (valor) {
-                            if (valor) {
-                              setState(() => _modo = ModoEvolucion.diario);
-                              _obtenerDatosDesdeFirebase();
-                            }
-                          },
+                        Text(
+                          'Evolución del gasto',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                        const SizedBox(width: 8),
-                        ChoiceChip(
-                          label: const Text('Semanal'),
-                          selected: _modo == ModoEvolucion.semanal,
-                          onSelected: (valor) {
-                            if (valor) {
-                              setState(() => _modo = ModoEvolucion.semanal);
-                              _obtenerDatosDesdeFirebase();
-                            }
-                          },
+                        IconButton(
+                          icon: Icon(Icons.date_range),
+                          onPressed: _seleccionarRangoDeFechas,
                         ),
                       ],
                     ),
-                    const SizedBox(height: 16),
-                    AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 500),
+                    SizedBox(height: 4),
+                    Text(
+                      '${formatoFecha.format(widget.fechaInicio)} – ${formatoFecha.format(widget.fechaFin)}',
+                      style: TextStyle(color: Colors.white70),
+                    ),
+                    SizedBox(height: 8),
+                    ToggleButtons(
+                      isSelected: [
+                        _modo == ModoEvolucion.diario,
+                        _modo == ModoEvolucion.semanal,
+                      ],
+                      onPressed: (index) {
+                        setState(() {
+                          _modo =
+                              index == 0
+                                  ? ModoEvolucion.diario
+                                  : ModoEvolucion.semanal;
+                          _obtenerDatosDesdeFirebase();
+                        });
+                      },
+                      borderRadius: BorderRadius.circular(10),
+                      selectedColor: Colors.white,
+                      fillColor: Colors.deepPurple,
+                      children: const [
+                        Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 16),
+                          child: Text('Diario'),
+                        ),
+                        Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 16),
+                          child: Text('Semanal'),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 12),
+                    Expanded(
                       child: SingleChildScrollView(
-                        key: ValueKey(_valores.length + _modo.index),
                         scrollDirection: Axis.horizontal,
                         child: SizedBox(
-                          width: (_valores.length * 40).toDouble().clamp(
-                            300,
-                            double.infinity,
-                          ),
-                          height: 300,
+                          width: (_fechas.length * 60).toDouble(),
                           child: LineChart(
                             LineChartData(
-                              lineTouchData: LineTouchData(
-                                touchTooltipData: LineTouchTooltipData(
-                                  getTooltipItems: (
-                                    List<LineBarSpot> touchedSpots,
-                                  ) {
-                                    return touchedSpots.map((spot) {
-                                      final fecha = _fechas[spot.x.toInt()];
-                                      final formato = DateFormat('dd/MM');
-                                      return LineTooltipItem(
-                                        '${formato.format(fecha)}\n${spot.y.toStringAsFixed(2)}',
-                                        const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 12,
-                                          backgroundColor: Colors.black87,
-                                        ),
-                                      );
-                                    }).toList();
-                                  },
-                                ),
-                              ),
                               titlesData: FlTitlesData(
                                 bottomTitles: AxisTitles(
                                   sideTitles: SideTitles(
@@ -170,67 +189,92 @@ class _EvolucionGastoScreenState extends State<EvolucionGastoScreen> {
                                     interval: 1,
                                     getTitlesWidget: (value, meta) {
                                       final index = value.toInt();
-                                      if (index < 0 ||
-                                          index >= _fechas.length) {
-                                        return const SizedBox(); // <-- necesita estar dentro de llaves {}
-                                      }
+                                      if (index < 0 || index >= _fechas.length)
+                                        return const SizedBox();
                                       final fecha = _fechas[index];
-                                      final formato = DateFormat('dd/MM');
-                                      return SideTitleWidget(
-                                        meta: meta,
-                                        space: 4,
-                                        child: Transform.rotate(
-                                          angle: -0.5,
-                                          child: Text(
-                                            formato.format(fecha),
-                                            style: const TextStyle(
-                                              fontSize: 10,
-                                            ),
+                                      final etiqueta = DateFormat(
+                                        'dd MMM',
+                                        'es',
+                                      ).format(fecha);
+                                      return Padding(
+                                        padding: const EdgeInsets.only(top: 4),
+                                        child: Text(
+                                          etiqueta,
+                                          style: const TextStyle(
+                                            color: Colors.white70,
+                                            fontSize: 10,
                                           ),
                                         ),
                                       );
-
-                                    }
-
+                                    },
                                   ),
                                 ),
                                 leftTitles: AxisTitles(
                                   sideTitles: SideTitles(
                                     showTitles: true,
+                                    interval: _determinarIntervaloEjeVertical(),
                                     getTitlesWidget: (value, meta) {
-                                      if (value == 0) return const Text('0');
-                                      return Text(
-                                        '${(value / 1000).toStringAsFixed(1)}K',
-                                        style: const TextStyle(fontSize: 10),
+                                      String texto;
+                                      if (value >= 1000) {
+                                        texto =
+                                            '${(value / 1000).toStringAsFixed(0)}k';
+                                      } else {
+                                        texto = value.toInt().toString();
+                                      }
+                                      return Padding(
+                                        padding: const EdgeInsets.only(
+                                          right: 6,
+                                        ),
+                                        child: Text(
+                                          texto,
+                                          style: const TextStyle(
+                                            color: Colors.white70,
+                                            fontSize: 10,
+                                          ),
+                                        ),
                                       );
                                     },
                                   ),
                                 ),
-                                topTitles: AxisTitles(
-                                  sideTitles: SideTitles(showTitles: false),
-                                ),
-                                rightTitles: AxisTitles(
-                                  sideTitles: SideTitles(showTitles: false),
+                              ),
+                              gridData: FlGridData(
+                                show: true,
+                                drawVerticalLine: true,
+                                getDrawingHorizontalLine:
+                                    (value) => FlLine(
+                                      color: Colors.white10,
+                                      strokeWidth: 1,
+                                    ),
+                                getDrawingVerticalLine:
+                                    (value) => FlLine(
+                                      color: Colors.white10,
+                                      strokeWidth: 1,
+                                    ),
+                              ),
+                              borderData: FlBorderData(
+                                show: true,
+                                border: Border.all(
+                                  color: Colors.white24,
+                                  width: 1,
                                 ),
                               ),
-                              gridData: FlGridData(show: true),
-                              borderData: FlBorderData(show: true),
                               minX: 0,
                               maxX: (_fechas.length - 1).toDouble(),
                               minY: 0,
                               lineBarsData: [
                                 LineChartBarData(
+                                  isCurved: true,
+                                  color: Colors.cyanAccent,
+                                  barWidth: 3,
+                                  dotData: FlDotData(show: true),
+                                  belowBarData: BarAreaData(show: false),
                                   spots: List.generate(
-                                    _valores.length,
+                                    _fechas.length,
                                     (index) => FlSpot(
                                       index.toDouble(),
                                       _valores[index],
                                     ),
                                   ),
-                                  isCurved: true,
-                                  barWidth: 3,
-                                  dotData: FlDotData(show: true),
-                                  belowBarData: BarAreaData(show: false),
                                 ),
                               ],
                             ),

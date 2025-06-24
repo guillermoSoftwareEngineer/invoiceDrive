@@ -4,6 +4,8 @@ import 'monthly_statistics.dart';
 import 'evolution_expenses.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+enum TipoEstadistica { categoria, mensual, evolucion }
+
 class EstadisticasScreen extends StatefulWidget {
   @override
   _EstadisticasScreenState createState() => _EstadisticasScreenState();
@@ -12,43 +14,47 @@ class EstadisticasScreen extends StatefulWidget {
 class _EstadisticasScreenState extends State<EstadisticasScreen> {
   DateTime? _fechaInicio;
   DateTime? _fechaFin;
-  Widget _vistaActual = SizedBox();
+  TipoEstadistica _tipo = TipoEstadistica.categoria;
+  Widget _vistaActual = const SizedBox();
   final _uid = FirebaseAuth.instance.currentUser?.uid;
 
   @override
   void initState() {
     super.initState();
-    _fechaInicio = DateTime.now().subtract(Duration(days: 30));
+    _fechaInicio = DateTime.now().subtract(const Duration(days: 30));
     _fechaFin = DateTime.now();
-    _vistaActual = EstadisticaPorCategoria(
-      fechaInicio: _fechaInicio!,
-      fechaFin: _fechaFin!,
-      uid: _uid!,
-    );
+    _actualizarVista();
   }
 
-  void _filtrarFacturas() {
-    print("Filtrando desde $_fechaInicio hasta $_fechaFin");
+  void _actualizarVista() {
+    if (_uid == null || _fechaInicio == null || _fechaFin == null) return;
+
     setState(() {
-      // Actualiza la vista actual con las nuevas fechas
-      if (_vistaActual is EstadisticaPorCategoria) {
-        _vistaActual = EstadisticaPorCategoria(
-          fechaInicio: _fechaInicio!,
-          fechaFin: _fechaFin!,
-          uid: _uid!,
-        );
-      } else if (_vistaActual is EstadisticaMensual) {
-        _vistaActual = EstadisticaMensual(
-          fechaInicio: _fechaInicio!,
-          fechaFin: _fechaFin!,
-          uid: _uid!,
-        );
-      } else if (_vistaActual is EvolucionGastoScreen) {
-        _vistaActual = EvolucionGastoScreen(
-          fechaInicio: _fechaInicio!,
-          fechaFin: _fechaFin!,
-          uid: _uid!,
-        );
+      switch (_tipo) {
+        case TipoEstadistica.categoria:
+          _vistaActual = EstadisticaPorCategoria(
+            key: UniqueKey(),
+            fechaInicio: _fechaInicio!,
+            fechaFin: _fechaFin!,
+            uid: _uid!,
+          );
+          break;
+        case TipoEstadistica.mensual:
+          _vistaActual = EstadisticaMensual(
+            key: UniqueKey(),
+            fechaInicio: _fechaInicio!,
+            fechaFin: _fechaFin!,
+            uid: _uid!,
+          );
+          break;
+        case TipoEstadistica.evolucion:
+          _vistaActual = EvolucionGastoScreen(
+            key: UniqueKey(),
+            fechaInicio: _fechaInicio!,
+            fechaFin: _fechaFin!,
+            uid: _uid!,
+          );
+          break;
       }
     });
   }
@@ -61,14 +67,14 @@ class _EstadisticasScreenState extends State<EstadisticasScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text('Seleccionar rango de fechas'),
+          title: const Text('Seleccionar rango de fechas'),
           content: StatefulBuilder(
             builder: (context, setState) {
               return Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   ListTile(
-                    title: Text('Desde'),
+                    title: const Text('Desde'),
                     subtitle: Text(
                       fechaInicio != null
                           ? '${fechaInicio?.day}/${fechaInicio?.month}/${fechaInicio?.year}'
@@ -87,7 +93,7 @@ class _EstadisticasScreenState extends State<EstadisticasScreen> {
                     },
                   ),
                   ListTile(
-                    title: Text('Hasta'),
+                    title: const Text('Hasta'),
                     subtitle: Text(
                       fechaFin != null
                           ? '${fechaFin?.day}/${fechaFin?.month}/${fechaFin?.year}'
@@ -111,21 +117,21 @@ class _EstadisticasScreenState extends State<EstadisticasScreen> {
           ),
           actions: [
             TextButton(
-              child: Text('Cancelar'),
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: const Text('Cancelar'),
             ),
             ElevatedButton(
-              child: Text('Aplicar'),
               onPressed: () {
-                if (fechaInicio != null && fechaFin != null) {
-                  setState(() {
-                    _fechaInicio = fechaInicio;
-                    _fechaFin = fechaFin;
-                  });
-                  _filtrarFacturas();
-                  Navigator.of(context).pop();
-                }
+                setState(() {
+                  _fechaInicio = fechaInicio;
+                  _fechaFin = fechaFin;
+                });
+                Navigator.pop(context);
+                _actualizarVista();
               },
+              child: const Text('Aplicar'),
             ),
           ],
         );
@@ -133,84 +139,47 @@ class _EstadisticasScreenState extends State<EstadisticasScreen> {
     );
   }
 
-  String _formatoFecha(DateTime fecha) {
-    return '${fecha.day}/${fecha.month}/${fecha.year}';
+  void _cambiarVista(TipoEstadistica tipo) {
+    setState(() {
+      _tipo = tipo;
+    });
+    _actualizarVista();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
       appBar: AppBar(
-        backgroundColor: Colors.black,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Estadísticas', style: TextStyle(fontWeight: FontWeight.bold)),
-            GestureDetector(
-              onTap: _mostrarSelectorFechas,
-              child: Row(
-                children: [
-                  Icon(Icons.date_range, size: 18),
-                  SizedBox(width: 4),
-                  Text(
-                    '${_formatoFecha(_fechaInicio!)} - ${_formatoFecha(_fechaFin!)}',
-                    style: TextStyle(fontSize: 14),
-                  ),
-                ],
+        title: const Text('Estadísticas'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.date_range),
+            onPressed: _mostrarSelectorFechas,
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              TextButton(
+                onPressed: () => _cambiarVista(TipoEstadistica.categoria),
+                child: const Text('Categoría'),
               ),
-            ),
-          ],
-        ),
+              TextButton(
+                onPressed: () => _cambiarVista(TipoEstadistica.mensual),
+                child: const Text('Mensual'),
+              ),
+              TextButton(
+                onPressed: () => _cambiarVista(TipoEstadistica.evolucion),
+                child: const Text('Evolución'),
+              ),
+            ],
+          ),
+          Expanded(child: _vistaActual),
+        ],
       ),
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            DrawerHeader(child: Text('Menú de estadísticas')),
-            ListTile(
-              title: Text('Gastos por Categoría'),
-              onTap: () {
-                setState(() {
-                  _vistaActual = EstadisticaPorCategoria(
-                    fechaInicio: _fechaInicio!,
-                    fechaFin: _fechaFin!,
-                    uid: _uid!,
-                  );
-                });
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              title: Text('Gastos mensuales'),
-              onTap: () {
-                setState(() {
-                  _vistaActual = EstadisticaMensual(
-                    fechaInicio: _fechaInicio!,
-                    fechaFin: _fechaFin!,
-                    uid: _uid!,
-                  );
-                });
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              title: Text('Evolución de gastos'),
-              onTap: () {
-                setState(() {
-                  _vistaActual = EvolucionGastoScreen(
-                    fechaInicio: _fechaInicio!,
-                    fechaFin: _fechaFin!,
-                    uid: _uid!,
-                  );
-                });
-                Navigator.pop(context);
-              },
-            ),
-          ],
-        ),
-      ),
-      body: _vistaActual,
     );
   }
 }

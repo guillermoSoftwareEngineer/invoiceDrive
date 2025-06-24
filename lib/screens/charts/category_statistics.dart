@@ -85,7 +85,13 @@ class _EstadisticaPorCategoriaState extends State<EstadisticaPorCategoria> {
     final colores = _generarColores(categorias.length);
 
     return Scaffold(
-      appBar: AppBar(title: Text('Gasto por Categoría')),
+      appBar: AppBar(
+        title: Text(
+          'Gastos por categoria',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        automaticallyImplyLeading: false,
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child:

@@ -105,11 +105,6 @@ class _EstadisticaMensualState extends State<EstadisticaMensual> {
                   children: [
                     Row(
                       children: [
-                        IconButton(
-                          icon: const Icon(Icons.arrow_back),
-                          onPressed: () => Navigator.pop(context),
-                        ),
-                        const SizedBox(width: 8),
                         const Text(
                           'Gasto mensual',
                           style: TextStyle(
