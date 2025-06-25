@@ -6,6 +6,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:invoice_d/screens/widgets/preload_home_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -80,7 +81,7 @@ class MyApp extends StatelessWidget {
         Locale('en', 'US'),
       ],
       home: FirebaseAuth.instance.currentUser != null
-          ? const HomeScreen()
+          ? const PreloadHomeScreen()
           : const WelcomeScreen(),
     );
   }

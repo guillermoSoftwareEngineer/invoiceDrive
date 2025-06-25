@@ -12,7 +12,16 @@ import '../invoice/invoice_detail_screen.dart';
 import '../charts/statistics.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final List<Map<String, dynamic>> flatInvoices;
+  final Map<String, List<Map<String, dynamic>>> groupedInvoices;
+  final double monthlyTotal;
+
+  const HomeScreen({
+    super.key,
+    required this.flatInvoices,
+    required this.groupedInvoices,
+    required this.monthlyTotal,
+  });
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -39,73 +48,103 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    fetchInvoices();
+    flatInvoices = widget.flatInvoices;
+    groupedInvoices = widget.groupedInvoices;
+    monthlyTotal = widget.monthlyTotal;
   }
 
-  Future<void> fetchInvoices() async {
+  Future<
+    ({
+      List<Map<String, dynamic>> flatInvoices,
+      Map<String, List<Map<String, dynamic>>> groupedInvoices,
+      double monthlyTotal,
+    })
+  >
+  fetchInvoices({
+    required String sortField,
+    required bool ascending,
+    required bool groupByDate,
+  }) async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
+    if (uid == null) {
+      return (
+        flatInvoices: <Map<String, dynamic>>[],
+        groupedInvoices: <String, List<Map<String, dynamic>>>{},
+        monthlyTotal: 0.0,
+      );
+    }
+
     final query = FirebaseFirestore.instance
         .collection('usuarios')
         .doc(uid)
         .collection('facturas');
 
-    if (currentSortField == 'fecha') {
-      final formato = DateFormat('yyyy-MM-dd');
-      final snapshot = await query.get();
-      final facturas = snapshot.docs.map((d) => d.data()).toList();
+    final snapshot =
+        (sortField == 'fecha' || sortField == 'total')
+            ? await query.get()
+            : await query.orderBy(sortField, descending: !ascending).get();
+
+    final facturas = snapshot.docs.map((d) => d.data()).toList();
+
+    if (sortField == 'fecha') {
       facturas.sort((a, b) {
-        final fa = _safeParseDate(a['fecha'], formato);
-        final fb = _safeParseDate(b['fecha'], formato);
-        return ascending ? fa.compareTo(fb) : fb.compareTo(fa);
+        final fa = a['fecha'] is Timestamp ? a['fecha'].toDate() : a['fecha'];
+        final fb = b['fecha'] is Timestamp ? b['fecha'].toDate() : b['fecha'];
+
+        if (fa is DateTime && fb is DateTime) {
+          return ascending ? fa.compareTo(fb) : fb.compareTo(fa);
+        }
+        return 0;
       });
-      setState(() {
-        flatInvoices = facturas;
-        groupedInvoices = {};
-        monthlyTotal = _calcularTotalDelMes(facturas);
-      });
-    } else if (currentSortField == 'total') {
-      final snapshot = await query.get();
-      final facturas = snapshot.docs.map((d) => d.data()).toList();
+
+      return (
+        flatInvoices: facturas,
+        groupedInvoices: <String, List<Map<String, dynamic>>>{},
+        monthlyTotal: _calcularTotalDelMes(facturas),
+      );
+    }
+
+    if (sortField == 'total') {
       facturas.sort((a, b) {
         final aTotal = double.tryParse(a['total'].toString()) ?? 0.0;
         final bTotal = double.tryParse(b['total'].toString()) ?? 0.0;
         return ascending ? aTotal.compareTo(bTotal) : bTotal.compareTo(aTotal);
       });
-      setState(() {
-        flatInvoices = facturas;
-        groupedInvoices = {};
-        monthlyTotal = _calcularTotalDelMes(facturas);
-      });
-    } else {
-      final snapshot =
-          await query.orderBy(currentSortField, descending: !ascending).get();
-      final tempGrouped = <String, List<Map<String, dynamic>>>{};
-      final tempFlat = <Map<String, dynamic>>[];
-      double tempTotal = 0;
-      final now = DateTime.now();
 
-      for (var doc in snapshot.docs) {
-        final data = doc.data();
-        final fechaRegistro = (data['fechaRegistro'] as Timestamp).toDate();
-        if (groupByDate) {
-          final key = DateFormat('yyyy-MM-dd').format(fechaRegistro);
-          tempGrouped.putIfAbsent(key, () => []).add(data);
-        } else {
-          tempFlat.add(data);
-        }
-        if (fechaRegistro.month == now.month &&
-            fechaRegistro.year == now.year) {
-          tempTotal += double.tryParse(data['total'].toString()) ?? 0.0;
-        }
+      return (
+        flatInvoices: facturas,
+        groupedInvoices: <String, List<Map<String, dynamic>>>{},
+        monthlyTotal: _calcularTotalDelMes(facturas),
+      );
+    }
+
+
+    final tempGrouped = <String, List<Map<String, dynamic>>>{};
+    final tempFlat = <Map<String, dynamic>>[];
+    double tempTotal = 0;
+    final now = DateTime.now();
+
+    for (var doc in snapshot.docs) {
+      final data = doc.data();
+      final fechaRegistro = (data['fechaRegistro'] as Timestamp).toDate();
+
+      if (groupByDate) {
+        final key = DateFormat('yyyy-MM-dd').format(fechaRegistro);
+        tempGrouped.putIfAbsent(key, () => []).add(data);
+      } else {
+        tempFlat.add(data);
       }
 
-      setState(() {
-        flatInvoices = tempFlat;
-        groupedInvoices = tempGrouped;
-        monthlyTotal = tempTotal;
-      });
+      if (fechaRegistro.month == now.month && fechaRegistro.year == now.year) {
+        tempTotal += double.tryParse(data['total'].toString()) ?? 0.0;
+      }
     }
+
+    return (
+      flatInvoices: tempFlat,
+      groupedInvoices: tempGrouped,
+      monthlyTotal: tempTotal,
+    );
   }
 
   void _filtrarFacturasPorRango() async {
@@ -157,14 +196,6 @@ class _HomeScreenState extends State<HomeScreen> {
       filtroPorFechaActivo = true;
       monthlyTotal = _calcularTotalDelMes(filtradas);
     });
-  }
-
-  DateTime _safeParseDate(String? value, DateFormat formato) {
-    try {
-      return formato.parse(value ?? '');
-    } catch (_) {
-      return DateTime(2000);
-    }
   }
 
   double _calcularTotalDelMes(List<Map<String, dynamic>> facturas) {
@@ -290,9 +321,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
-                          builder: (_) => EstadisticasScreen(),
-                        ),
+                        MaterialPageRoute(builder: (_) => EstadisticasScreen()),
                       );
                     },
                     child: Icon(Icons.bar_chart),
@@ -312,36 +341,15 @@ class _HomeScreenState extends State<HomeScreen> {
                     color: Colors.white,
                   ),
                 ),
-                PopupMenuButton<String>(
+                IconButton(
                   icon: const Icon(
                     Icons.filter_list,
                     color: Colors.white,
                     size: 28,
                   ),
-                  onSelected: (v) => _applyFilter(v),
-                  itemBuilder:
-                      (_) => [
-                        if (!filtroPorFechaActivo)
-                          PopupMenuItem(
-                            value: 'fechaRegistro',
-                            child: Text('Fecha de generación'),
-                          ),
-                        PopupMenuItem(
-                          value: 'fecha',
-                          child: Text('Fecha de la factura'),
-                        ),
-                        PopupMenuItem(
-                          value: 'total',
-                          child: Text('Valor de la factura'),
-                        ),
-                        PopupMenuDivider(),
-                        PopupMenuItem(value: 'asc', child: Text('Ascendente')),
-                        PopupMenuItem(
-                          value: 'desc',
-                          child: Text('Descendente'),
-                        ),
-                      ],
+                  onPressed: () => mostrarModalOrdenamiento(context),
                 ),
+
                 IconButton(
                   icon: const Icon(
                     Icons.date_range,
@@ -349,36 +357,22 @@ class _HomeScreenState extends State<HomeScreen> {
                     size: 28,
                   ),
                   onPressed: () async {
-                    final now = DateTime.now();
-
-                    final inicio = await showDatePicker(
-                      context: context,
-                      initialDate: fechaInicio ?? now,
-                      firstDate: DateTime(2020),
-                      lastDate: now,
-                      helpText: 'Selecciona la fecha inicial',
-                      locale: const Locale('es', 'CO'),
+                    final resultado = await mostrarSelectorFechas(
+                      context,
+                      fechaInicio,
+                      fechaFin,
                     );
+                    if (resultado != null) {
+                      final (inicio, fin) = resultado;
+                      if (inicio == null || fin == null) return;
 
-                    if (inicio == null) return;
+                      setState(() {
+                        fechaInicio = inicio;
+                        fechaFin = fin;
+                      });
 
-                    final fin = await showDatePicker(
-                      context: context,
-                      initialDate: fechaFin ?? now,
-                      firstDate: inicio,
-                      lastDate: now,
-                      helpText: 'Selecciona la fecha final',
-                      locale: const Locale('es', 'CO'),
-                    );
-
-                    if (fin == null) return;
-
-                    setState(() {
-                      fechaInicio = inicio;
-                      fechaFin = fin;
-                    });
-
-                    _filtrarFacturasPorRango();
+                      _filtrarFacturasPorRango();
+                    }
                   },
                 ),
               ],
@@ -389,13 +383,24 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Align(
                   alignment: Alignment.centerRight,
                   child: TextButton.icon(
-                    onPressed: () {
+                    onPressed: () async {
                       setState(() {
+                        filtroPorFechaActivo = false;
                         fechaInicio = null;
                         fechaFin = null;
-                        filtroPorFechaActivo = false;
                       });
-                      fetchInvoices(); // vuelve a traer todas las facturas
+
+                      final result = await fetchInvoices(
+                        sortField: currentSortField,
+                        ascending: ascending,
+                        groupByDate: groupByDate,
+                      );
+
+                      setState(() {
+                        flatInvoices = result.flatInvoices;
+                        groupedInvoices = result.groupedInvoices;
+                        monthlyTotal = result.monthlyTotal;
+                      });
                     },
                     icon: const Icon(Icons.clear, color: Colors.white),
                     label: const Text(
@@ -450,7 +455,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _applyFilter(String value) {
+  void _applyFilter(String value) async {
     setState(() {
       if (value == 'asc') {
         ascending = true;
@@ -465,7 +470,16 @@ class _HomeScreenState extends State<HomeScreen> {
     if (filtroPorFechaActivo) {
       _ordenarFacturasLocalmente();
     } else {
-      fetchInvoices();
+      final result = await fetchInvoices(
+        sortField: currentSortField,
+        ascending: ascending,
+        groupByDate: groupByDate,
+      );
+      setState(() {
+        flatInvoices = result.flatInvoices;
+        groupedInvoices = result.groupedInvoices;
+        monthlyTotal = result.monthlyTotal;
+      });
     }
   }
 
@@ -474,21 +488,139 @@ class _HomeScreenState extends State<HomeScreen> {
       flatInvoices.sort((a, b) {
         if (currentSortField == 'fecha' ||
             currentSortField == 'fechaRegistro') {
-          final aFecha = (a[currentSortField] as Timestamp).toDate();
-          final bFecha = (b[currentSortField] as Timestamp).toDate();
+          final aValor = a[currentSortField];
+          final bValor = b[currentSortField];
+
+          DateTime? aFecha;
+          DateTime? bFecha;
+
+          if (aValor is Timestamp) {
+            aFecha = aValor.toDate();
+          } else if (aValor is DateTime) {
+            aFecha = aValor;
+          }
+
+          if (bValor is Timestamp) {
+            bFecha = bValor.toDate();
+          } else if (bValor is DateTime) {
+            bFecha = bValor;
+          }
+
+          if (aFecha == null || bFecha == null) return 0;
+
           return ascending
               ? aFecha.compareTo(bFecha)
               : bFecha.compareTo(aFecha);
-        } else if (currentSortField == 'total') {
+        }
+
+        if (currentSortField == 'total') {
           final aTotal = double.tryParse(a['total'].toString()) ?? 0.0;
           final bTotal = double.tryParse(b['total'].toString()) ?? 0.0;
           return ascending
               ? aTotal.compareTo(bTotal)
               : bTotal.compareTo(aTotal);
         }
+
         return 0;
       });
     });
+  }
+
+
+  void _applyFiltroConEstado(String campo, bool asc) async {
+    setState(() {
+      currentSortField = campo;
+      ascending = asc;
+      groupByDate = (campo == 'fechaRegistro');
+    });
+
+
+    if (filtroPorFechaActivo) {
+      _ordenarFacturasLocalmente();
+    } else {
+      final result = await fetchInvoices(
+        sortField: campo,
+        ascending: asc,
+        groupByDate: groupByDate,
+      );
+      setState(() {
+        flatInvoices = result.flatInvoices;
+        groupedInvoices = result.groupedInvoices;
+        monthlyTotal = result.monthlyTotal;
+      });
+    }
+  }
+  Future<void> mostrarModalOrdenamiento(BuildContext context) async {
+    String? campo = currentSortField;
+    bool asc = ascending;
+
+    await showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Text('Ordenar facturas'),
+          content: StatefulBuilder(
+            builder: (ctx, setState) {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  RadioListTile<String>(
+                    title: const Text('Fecha de generación'),
+                    value: 'fechaRegistro',
+                    groupValue: campo,
+                    onChanged:
+                        filtroPorFechaActivo
+                            ? null
+                            : (value) => setState(() => campo = value!),
+                    subtitle:
+                        filtroPorFechaActivo
+                            ? const Text(
+                              'Deshabilitado por filtrado de fechas',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey,
+                              ),
+                            )
+                            : null,
+                  ),
+                  RadioListTile<String>(
+                    title: const Text('Fecha de la factura'),
+                    value: 'fecha',
+                    groupValue: campo,
+                    onChanged: (value) => setState(() => campo = value!),
+                  ),
+                  RadioListTile<String>(
+                    title: const Text('Valor de la factura'),
+                    value: 'total',
+                    groupValue: campo,
+                    onChanged: (value) => setState(() => campo = value!),
+                  ),
+                  const Divider(),
+                  CheckboxListTile(
+                    title: const Text('Ascendente'),
+                    value: asc,
+                    onChanged: (v) => setState(() => asc = v!),
+                  ),
+                ],
+              );
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                _applyFiltroConEstado(campo!, asc);
+              },
+              child: const Text('Aplicar'),
+            ),
+          ],
+        );
+      },
+    );
   }
 }
 
@@ -577,4 +709,79 @@ DateTime _safeParseDate(String? value, DateFormat formato) {
   } catch (_) {
     return DateTime(2000);
   }
+}
+
+Future<(DateTime?, DateTime?)?> mostrarSelectorFechas(
+  BuildContext context,
+  DateTime? inicio,
+  DateTime? fin,
+) {
+  return showDialog<(DateTime?, DateTime?)>(
+    context: context,
+    builder: (context) {
+      DateTime? fechaInicio = inicio;
+      DateTime? fechaFin = fin;
+
+      return AlertDialog(
+        title: const Text('Seleccionar rango de fechas'),
+        content: StatefulBuilder(
+          builder: (context, setState) {
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  title: const Text('Desde'),
+                  subtitle: Text(
+                    fechaInicio != null
+                        ? '${fechaInicio?.day}/${fechaInicio?.month}/${fechaInicio?.year}'
+                        : 'Seleccionar fecha',
+                  ),
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: fechaInicio ?? DateTime.now(),
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime.now(),
+                    );
+                    if (picked != null) {
+                      setState(() => fechaInicio = picked);
+                    }
+                  },
+                ),
+                ListTile(
+                  title: const Text('Hasta'),
+                  subtitle: Text(
+                    fechaFin != null
+                        ? '${fechaFin?.day}/${fechaFin?.month}/${fechaFin?.year}'
+                        : 'Seleccionar fecha',
+                  ),
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: fechaFin ?? DateTime.now(),
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime.now(),
+                    );
+                    if (picked != null) {
+                      setState(() => fechaFin = picked);
+                    }
+                  },
+                ),
+              ],
+            );
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, (fechaInicio, fechaFin)),
+            child: const Text('Aplicar'),
+          ),
+        ],
+      );
+    },
+  );
 }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:invoice_d/screens/home/home_screen.dart';
 import 'package:invoice_d/screens/widgets/loading_screen.dart';
+import 'package:invoice_d/screens/widgets/preload_home_screen.dart';
 
 class LoginEmailScreen extends StatefulWidget {
   const LoginEmailScreen({super.key});
@@ -42,7 +42,7 @@ class _LoginEmailScreenState extends State<LoginEmailScreen> {
       if (usuario != null) {
         Navigator.pushReplacement(
           ctx,
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
+          MaterialPageRoute(builder: (_) => const PreloadHomeScreen()),
         );
       }
     } on FirebaseAuthException catch (e) {

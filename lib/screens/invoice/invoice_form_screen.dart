@@ -5,7 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:intl/intl.dart';
 import 'package:invoice_d/screens/widgets/loading_screen.dart';
-import '../home/home_screen.dart';
+import '../widgets/preload_home_screen.dart';
 
 class FacturaFormScreen extends StatefulWidget {
   final Map<String, dynamic>? datos;
@@ -219,9 +219,8 @@ class _FacturaFormScreenState extends State<FacturaFormScreen> {
       ScaffoldMessenger.of(ctx).showSnackBar(
         const SnackBar(content: Text('Factura guardada correctamente')),
       );
-
       Navigator.of(ctx).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
+        MaterialPageRoute(builder: (_) => const PreloadHomeScreen()),
         (route) => false,
       );
     } catch (e) {
